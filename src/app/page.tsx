@@ -1,3 +1,7 @@
+import Link from "next/link";
+import SearchBar from "@/components/SearchBar";
+import RecentSearches from "@/components/RecentSearches";
+
 export default function Home() {
   return (
     <div className="flex flex-1 flex-col bg-orange-50 font-sans text-stone-900">
@@ -7,6 +11,12 @@ export default function Home() {
             和
           </span>
           <span className="text-lg font-semibold tracking-tight">WashokuMap</span>
+          <Link
+            href="/favorites"
+            className="ml-auto text-sm text-stone-500 hover:text-stone-800"
+          >
+            ♥ お気に入り
+          </Link>
         </div>
       </header>
 
@@ -25,25 +35,11 @@ export default function Home() {
             </span>
           </p>
 
-          {/* 検索バー(MVPではUIプレースホルダ。検索APIは後続フェーズで接続) */}
-          <form
-            className="mt-2 flex flex-col gap-2 sm:flex-row"
-            action="/search"
-          >
-            <input
-              type="search"
-              name="q"
-              placeholder="店名・ジャンル・エリアで検索(例: 寿司 渋谷)"
-              aria-label="和食店を検索"
-              className="flex-1 rounded-full border border-orange-200 bg-white px-5 py-3 text-base shadow-sm outline-none placeholder:text-stone-400 focus:border-orange-400"
-            />
-            <button
-              type="submit"
-              className="rounded-full bg-orange-800 px-6 py-3 font-medium text-orange-50 transition-colors hover:bg-orange-900"
-            >
-              検索
-            </button>
-          </form>
+          {/* 検索バー(送信時に検索履歴を localStorage に記録) */}
+          <div className="mt-2 flex flex-col gap-3">
+            <SearchBar size="lg" />
+            <RecentSearches />
+          </div>
         </section>
 
         <section className="grid gap-4 sm:grid-cols-3">

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { searchRestaurants } from "@/lib/restaurants";
 import SearchResultsView from "@/components/SearchResultsView";
+import SearchBar from "@/components/SearchBar";
 
 export const dynamic = "force-dynamic";
 
@@ -40,22 +41,15 @@ export default async function SearchPage({
               WashokuMap
             </span>
           </Link>
-          <form action="/search" className="ml-auto flex flex-1 gap-2">
-            <input
-              type="search"
-              name="q"
-              defaultValue={q}
-              placeholder="店名・ジャンル・エリアで検索"
-              aria-label="和食店を検索"
-              className="flex-1 rounded-full border border-orange-200 bg-white px-4 py-2 text-sm outline-none focus:border-orange-400"
-            />
-            <button
-              type="submit"
-              className="rounded-full bg-orange-800 px-4 py-2 text-sm font-medium text-orange-50 hover:bg-orange-900"
+          <div className="ml-auto flex flex-1 items-center gap-3">
+            <SearchBar size="sm" defaultValue={q} />
+            <Link
+              href="/favorites"
+              className="hidden shrink-0 text-sm text-stone-500 hover:text-stone-800 sm:inline"
             >
-              検索
-            </button>
-          </form>
+              ♥
+            </Link>
+          </div>
         </div>
         <p className="mx-auto max-w-5xl px-4 pb-2 text-xs text-stone-500 sm:px-6">
           {q ? <>「{q}」の検索結果: </> : "検索結果: "}

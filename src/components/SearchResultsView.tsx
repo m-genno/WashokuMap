@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import type { RestaurantSearchResult } from "@/lib/restaurants";
+import FavoriteButton from "./FavoriteButton";
 
 // Leaflet は window 依存のためクライアントのみで読み込む。
 const RestaurantMap = dynamic(() => import("./RestaurantMap"), {
@@ -97,13 +98,21 @@ export default function SearchResultsView({
                   )}
                 </div>
               </button>
-              <div className="px-4 pb-3">
+              <div className="flex items-center justify-between px-4 pb-3">
                 <Link
                   href={`/restaurants/${r.id}`}
                   className="text-sm font-medium text-orange-800 hover:text-orange-900"
                 >
                   詳細・予約 →
                 </Link>
+                <FavoriteButton
+                  item={{
+                    id: r.id,
+                    name: r.name,
+                    nameEn: r.name_translations?.en,
+                    address: r.address,
+                  }}
+                />
               </div>
             </li>
           );

@@ -6,6 +6,7 @@ import {
   type RestaurantHours,
 } from "@/lib/restaurants";
 import DetailMap from "@/components/DetailMap";
+import FavoriteButton from "@/components/FavoriteButton";
 
 export const dynamic = "force-dynamic";
 
@@ -96,11 +97,21 @@ export default async function RestaurantPage({
         <div className="mb-4">
           <div className="flex items-start justify-between gap-3">
             <h1 className="text-2xl font-bold">{r.name}</h1>
-            {r.rating_count > 0 && (
-              <span className="shrink-0 pt-1 text-amber-600">
-                ★ {r.rating_avg.toFixed(1)}（{r.rating_count}）
-              </span>
-            )}
+            <div className="flex shrink-0 items-center gap-3 pt-1">
+              {r.rating_count > 0 && (
+                <span className="text-amber-600">
+                  ★ {r.rating_avg.toFixed(1)}（{r.rating_count}）
+                </span>
+              )}
+              <FavoriteButton
+                item={{
+                  id: r.id,
+                  name: r.name,
+                  nameEn: r.name_translations?.en,
+                  address: r.address,
+                }}
+              />
+            </div>
           </div>
           {r.name_translations?.en && (
             <p className="text-stone-500">{r.name_translations.en}</p>
