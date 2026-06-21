@@ -46,4 +46,12 @@ cp .env.example .env.local
 npm run db:up        # DB起動
 npm run dev          # アプリ起動
 
+---
+
+ローカルでの動かし方
+
+npm run db:up            # DB起動(スキーマ自動適用済み)
+# サンプル投入(任意):
+docker exec -i washoku-db psql -U postgres -d washokumap -f - < db/seed/sample_restaurants.sql
+npm run dev              # http://localhost:3000 → 検索フォームから /search
 
