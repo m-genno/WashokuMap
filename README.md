@@ -31,6 +31,19 @@ npm run start    # 本番サーバ起動
 npm run lint
 ```
 
+### ローカルDB(PostgreSQL + PostGIS)
+
+Docker Compose で起動し、初回のみ [`db/`](./db/) のマイグレーション+seedを自動適用する。
+
+```bash
+cp .env.example .env.local   # DATABASE_URL を用意
+npm run db:up                # DB起動(初回はスキーマ+seedを自動適用)
+npm run db:down              # 停止(データ保持)
+npm run db:reset             # スキーマ変更後に作り直し
+```
+
+接続先: `postgres://postgres:postgres@localhost:55432/washokumap` / 詳細は [`db/README.md`](./db/README.md)。
+
 > Service Worker は本番環境(`npm run build` + `npm run start`)でのみ登録されます。
 > 開発時(`npm run dev`)はキャッシュの混乱を避けるため無効です。
 

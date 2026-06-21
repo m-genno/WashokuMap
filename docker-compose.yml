@@ -1,0 +1,37 @@
+# ローカル開発用の PostgreSQL + PostGIS。
+#   docker compose up -d      で起動(初回のみ db/ のSQLを自動適用)
+#   docker compose down       で停止(データは保持)
+#   docker compose down -v    で停止＋データ削除(マイグレーションを最初からやり直す)
+#
+# 接続先: postgres://postgres:postgres@localhost:55432/washokumap
+#
+# 注意: /docker-entrypoint-initdb.d のSQLは「データボリュームが空の初回起動時のみ」実行される。
+#       スキーマを変更したら `docker compose down -v` で作り直すこと。
+services:
+  db:
+    image: postgis/postgis:16-3.4
+    container_name: washoku-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: washokumap
+    ports:
+      - "55432:5432"
+    volumes:
+      - washoku-db-data:/var/lib/postgresql/data
+      # 初回起動時にファイル名の昇順で自動適用(0001..0006 → 99_seed)
+      - ./db/migrations/0001_extensions.sql:/docker-entrypoint-initdb.d/0001_extensions.sql:ro
+      - ./db/migrations/0002_users_auth.sql:/docker-entrypoint-initdb.d/0002_users_auth.sql:ro
+      - ./db/migrations/0003_restaurants.sql:/docker-entrypoint-initdb.d/0003_restaurants.sql:ro
+      - ./db/migrations/0004_user_activity.sql:/docker-entrypoint-initdb.d/0004_user_activity.sql:ro
+      - ./db/migrations/0005_reservations.sql:/docker-entrypoint-initdb.d/0005_reservations.sql:ro
+      - ./db/migrations/0006_reviews.sql:/docker-entrypoint-initdb.d/0006_reviews.sql:ro
+      - ./db/seed/genres.sql:/docker-entrypoint-initdb.d/99_genres.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d washokumap"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  washoku-db-data:

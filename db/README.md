@@ -22,7 +22,25 @@ db/
 
 ## 適用方法
 
-### A. psql(ローカル / 任意のマネージドPostgres)
+### A. Docker Compose(ローカル開発・推奨)
+
+リポジトリ直下の [`docker-compose.yml`](../docker-compose.yml) が PostGIS を起動し、
+**初回起動時に `db/migrations/*` と `db/seed/genres.sql` を自動適用**する。
+
+```bash
+npm run db:up      # 起動(初回はスキーマ+seedを自動適用)
+npm run db:logs    # ログ追跡
+npm run db:down    # 停止(データは保持)
+npm run db:reset   # データ削除して作り直し(スキーマ変更後はこれ)
+```
+
+接続先: `postgres://postgres:postgres@localhost:55432/washokumap`
+(`.env.example` を `.env.local` にコピーして `DATABASE_URL` を利用)
+
+> 自動適用は**データボリュームが空の初回起動時のみ**。マイグレーションを編集したら
+> `npm run db:reset`(= `docker compose down -v && up`)で作り直す。
+
+### B. psql(任意のマネージドPostgres / 手動適用)
 
 ```bash
 # 例: ローカルの washokumap データベースへ
@@ -45,7 +63,7 @@ Get-ChildItem db/migrations/*.sql | Sort-Object Name | ForEach-Object {
 psql $env:DATABASE_URL -f db/seed/genres.sql
 ```
 
-### B. Supabase
+### C. Supabase
 
 Supabase は PostGIS を拡張として有効化できる。SQL Editor に各ファイルの内容を番号順に貼り付けて実行するか、Supabase CLI を使う場合は `supabase/migrations/` にタイムスタンプ付きでコピーして `supabase db push`。
 
