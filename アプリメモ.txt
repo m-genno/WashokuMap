@@ -35,3 +35,15 @@
 npm run dev      # http://localhost:3000 で確認
 # PWA(SW)込みで確認するなら:
 npm run build && npm run start
+
+
+
+---
+
+# 使い方(ローカル開発)
+
+cp .env.example .env.local
+npm run db:up        # DB起動
+npm run dev          # アプリ起動
+
+
