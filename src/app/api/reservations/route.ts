@@ -5,6 +5,7 @@ import {
   sendReservationNotification,
   recordNotificationEvent,
 } from "@/lib/notifications";
+import { translateToJa } from "@/lib/translation";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -65,6 +66,16 @@ export async function POST(req: NextRequest) {
     const guestPhone = body.guestPhone?.trim() || null;
     const budgetPerPerson =
       body.budgetPerPerson != null ? Number(body.budgetPerPerson) : null;
+    const requests = body.requests?.trim() || null;
+    const lang = guestLang || "en";
+
+    // 要望を日本語へ翻訳(未接続なら null)。失敗が予約を妨げないよう保護。
+    let requestsJa: string | null = null;
+    try {
+      requestsJa = await translateToJa(requests, lang);
+    } catch (translateErr) {
+      console.error("reservation translation failed:", translateErr);
+    }
 
     const reservation = await createReservation({
       restaurantId,
@@ -76,8 +87,9 @@ export async function POST(req: NextRequest) {
       guestName: guestName.trim(),
       guestEmail,
       guestPhone,
-      guestLang: guestLang || "en",
-      requests: body.requests?.trim() || null,
+      guestLang: lang,
+      requests,
+      requestsJa,
       dietary: body.dietary ?? null,
       budgetPerPerson,
     });
@@ -96,7 +108,7 @@ export async function POST(req: NextRequest) {
         guestName: guestName.trim(),
         guestEmail,
         guestPhone,
-        guestLang: guestLang || "en",
+        guestLang: lang,
         requests: reservation.requests,
         requestsJa: reservation.requests_ja,
         dietary: body.dietary ?? null,

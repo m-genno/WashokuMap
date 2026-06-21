@@ -12,6 +12,8 @@ export interface CreateReservationInput {
   guestLang: string;
   /** 客が入力した要望(原文) */
   requests?: string | null;
+  /** 要望の日本語訳(呼び出し側で翻訳して渡す)。null可 */
+  requestsJa?: string | null;
   /** アレルギー/宗教制限/ベジ等の定型項目 */
   dietary?: Record<string, unknown> | null;
   budgetPerPerson?: number | null;
@@ -33,14 +35,12 @@ export interface CreatedReservation {
  *
  * 翻訳について:
  *   原文は requests に保存する(設計の「原文＋翻訳併記」の原文側)。
- *   日本語訳 requests_ja は、翻訳APIが未接続のため現状は guest_lang='ja' のときのみ
- *   原文をそのまま入れる。DeepL/Google 接続時にここを差し替える。
+ *   日本語訳 requests_ja は呼び出し側(API ルート)で translateToJa して渡す。
  */
 export async function createReservation(
   input: CreateReservationInput
 ): Promise<CreatedReservation> {
-  const requestsJa =
-    input.guestLang === "ja" ? input.requests ?? null : null;
+  const requestsJa = input.requestsJa ?? null;
 
   const client = await pool.connect();
   try {
