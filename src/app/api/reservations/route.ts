@@ -1,6 +1,10 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { getRestaurantById } from "@/lib/restaurants";
 import { createReservation } from "@/lib/reservations";
+import {
+  sendReservationNotification,
+  recordNotificationEvent,
+} from "@/lib/notifications";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -57,6 +61,11 @@ export async function POST(req: NextRequest) {
   }
 
   try {
+    const guestEmail = body.guestEmail?.trim() || null;
+    const guestPhone = body.guestPhone?.trim() || null;
+    const budgetPerPerson =
+      body.budgetPerPerson != null ? Number(body.budgetPerPerson) : null;
+
     const reservation = await createReservation({
       restaurantId,
       desiredAt: when.toISOString(),
@@ -65,14 +74,39 @@ export async function POST(req: NextRequest) {
         : null,
       partySize,
       guestName: guestName.trim(),
-      guestEmail: body.guestEmail?.trim() || null,
-      guestPhone: body.guestPhone?.trim() || null,
+      guestEmail,
+      guestPhone,
       guestLang: guestLang || "en",
       requests: body.requests?.trim() || null,
       dietary: body.dietary ?? null,
-      budgetPerPerson:
-        body.budgetPerPerson != null ? Number(body.budgetPerPerson) : null,
+      budgetPerPerson,
     });
+
+    // 店舗/予約デスクへ通知。失敗しても予約自体は成立させる。
+    try {
+      const result = await sendReservationNotification({
+        id: reservation.id,
+        restaurantName: restaurant.name,
+        restaurantPhone: restaurant.phone,
+        desiredAt: reservation.desired_at,
+        desiredAltAt: body.desiredAltAt
+          ? new Date(body.desiredAltAt).toISOString()
+          : null,
+        partySize,
+        guestName: guestName.trim(),
+        guestEmail,
+        guestPhone,
+        guestLang: guestLang || "en",
+        requests: reservation.requests,
+        requestsJa: reservation.requests_ja,
+        dietary: body.dietary ?? null,
+        budgetPerPerson,
+      });
+      await recordNotificationEvent(reservation.id, result);
+    } catch (notifyErr) {
+      console.error("reservation notification failed:", notifyErr);
+    }
+
     return NextResponse.json({ reservation }, { status: 201 });
   } catch (err) {
     console.error("create reservation failed:", err);

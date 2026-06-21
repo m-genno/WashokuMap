@@ -23,6 +23,8 @@ export interface CreatedReservation {
   id: string;
   status: string;
   desired_at: string;
+  requests: string | null;
+  requests_ja: string | null;
 }
 
 /**
@@ -50,7 +52,7 @@ export async function createReservation(
           guest_name, guest_email, guest_phone, guest_lang,
           requests, requests_ja, dietary, budget_per_person)
        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
-       RETURNING id, status, desired_at`,
+       RETURNING id, status, desired_at, requests, requests_ja`,
       [
         input.restaurantId,
         input.userId ?? null,
