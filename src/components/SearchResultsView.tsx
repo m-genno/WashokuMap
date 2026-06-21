@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
+import Link from "next/link";
 import type { RestaurantSearchResult } from "@/lib/restaurants";
 
 // Leaflet は window 依存のためクライアントのみで読み込む。
@@ -61,15 +62,16 @@ export default function SearchResultsView({
               ref={(el) => {
                 itemRefs.current[r.id] = el;
               }}
+              className={`rounded-2xl border bg-white shadow-sm transition-colors ${
+                selected
+                  ? "border-amber-500 ring-2 ring-amber-300"
+                  : "border-orange-100 hover:border-orange-300"
+              }`}
             >
               <button
                 type="button"
                 onClick={() => setSelectedId(r.id)}
-                className={`w-full rounded-2xl border bg-white p-4 text-left shadow-sm transition-colors ${
-                  selected
-                    ? "border-amber-500 ring-2 ring-amber-300"
-                    : "border-orange-100 hover:border-orange-300"
-                }`}
+                className="w-full p-4 pb-2 text-left"
               >
                 <div className="flex items-baseline justify-between gap-3">
                   <h2 className="font-semibold">{r.name}</h2>
@@ -95,6 +97,14 @@ export default function SearchResultsView({
                   )}
                 </div>
               </button>
+              <div className="px-4 pb-3">
+                <Link
+                  href={`/restaurants/${r.id}`}
+                  className="text-sm font-medium text-orange-800 hover:text-orange-900"
+                >
+                  詳細・予約 →
+                </Link>
+              </div>
             </li>
           );
         })}

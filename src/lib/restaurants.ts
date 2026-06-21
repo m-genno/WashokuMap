@@ -110,3 +110,101 @@ export async function searchRestaurants(
 
   return query<RestaurantSearchResult>(sql, values);
 }
+
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+export interface RestaurantGenre {
+  code: string;
+  name_translations: Record<string, string>;
+}
+export interface RestaurantPhoto {
+  url: string;
+  caption: string | null;
+}
+export interface RestaurantHours {
+  day_of_week: number; // 0=日 .. 6=土
+  open_time: string; // "18:00:00"
+  close_time: string;
+  note: string | null;
+}
+export interface RestaurantReview {
+  id: string;
+  rating: number;
+  body: string | null;
+  body_lang: string;
+  created_at: string;
+}
+
+export interface RestaurantDetail {
+  id: string;
+  name: string;
+  name_translations: Record<string, string>;
+  description: string | null;
+  description_translations: Record<string, string>;
+  address: string | null;
+  lat: number | null;
+  lng: number | null;
+  phone: string | null;
+  website_url: string | null;
+  reservation_mode: "request" | "external" | "phone_only";
+  reservation_url: string | null;
+  price_range: number | null;
+  rating_avg: number;
+  rating_count: number;
+  genres: RestaurantGenre[];
+  photos: RestaurantPhoto[];
+  hours: RestaurantHours[];
+  reviews: RestaurantReview[];
+}
+
+/**
+ * 公開店舗(status='published')の詳細を、ジャンル/写真/営業時間/口コミ込みで取得。
+ * 見つからない・非公開・不正なIDの場合は null。
+ */
+export async function getRestaurantById(
+  id: string
+): Promise<RestaurantDetail | null> {
+  if (!UUID_RE.test(id)) return null;
+
+  const rows = await query<Omit<RestaurantDetail, "genres" | "photos" | "hours" | "reviews">>(
+    `SELECT
+       id, name, name_translations, description, description_translations, address,
+       ST_Y(location::geometry) AS lat,
+       ST_X(location::geometry) AS lng,
+       phone, website_url, reservation_mode, reservation_url, price_range,
+       rating_avg::float8 AS rating_avg, rating_count
+     FROM restaurant
+     WHERE id = $1 AND status = 'published'`,
+    [id]
+  );
+  if (rows.length === 0) return null;
+  const base = rows[0];
+
+  const [genres, photos, hours, reviews] = await Promise.all([
+    query<RestaurantGenre>(
+      `SELECT g.code, g.name_translations
+       FROM restaurant_genre rg JOIN genre g ON g.id = rg.genre_id
+       WHERE rg.restaurant_id = $1 ORDER BY g.code`,
+      [id]
+    ),
+    query<RestaurantPhoto>(
+      `SELECT url, caption FROM restaurant_photo
+       WHERE restaurant_id = $1 ORDER BY is_primary DESC, sort_order ASC`,
+      [id]
+    ),
+    query<RestaurantHours>(
+      `SELECT day_of_week, open_time, close_time, note FROM restaurant_hours
+       WHERE restaurant_id = $1 ORDER BY day_of_week, open_time`,
+      [id]
+    ),
+    query<RestaurantReview>(
+      `SELECT id, rating, body, body_lang, created_at FROM review
+       WHERE restaurant_id = $1 AND status = 'published'
+       ORDER BY created_at DESC LIMIT 20`,
+      [id]
+    ),
+  ]);
+
+  return { ...base, genres, photos, hours, reviews };
+}
