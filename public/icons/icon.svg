@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-label="WashokuMap">
+  <rect width="512" height="512" rx="96" fill="#9a3412"/>
+  <circle cx="256" cy="232" r="150" fill="#fff7ed"/>
+  <path d="M150 232a106 106 0 0 0 212 0z" fill="#9a3412"/>
+  <rect x="120" y="232" width="272" height="14" rx="7" fill="#9a3412"/>
+  <text x="256" y="430" font-family="serif" font-size="120" font-weight="700" fill="#fff7ed" text-anchor="middle">和</text>
+</svg>

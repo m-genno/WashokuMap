@@ -1,0 +1,27 @@
+{
+  "name": "WashokuMap — 和食店を探す・予約する",
+  "short_name": "WashokuMap",
+  "description": "食べログ・一休などに未掲載の和食店を、登録不要で検索・予約できるインバウンド向けWebアプリ。",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#9a3412",
+  "lang": "ja",
+  "dir": "ltr",
+  "categories": ["food", "travel", "lifestyle"],
+  "icons": [
+    {
+      "src": "/icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-maskable.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ]
+}
