@@ -1,0 +1,4 @@
+name,name_en,address,phone,website_url,genres,reservation_mode,reservation_url,price_range
+和食 まつ,Washoku Matsu,東京都新宿区四谷1-1-1,03-1000-0001,,washoku;kaiseki,request,,3
+天ぷら 江戸川,Tempura Edogawa,東京都台東区上野2-2-2,03-1000-0002,https://example.com/edogawa,tempura,phone_only,,2
+蕎麦切り 翁,Sobakiri Okina,東京都港区赤坂3-3-3,03-1000-0003,,soba,external,https://example.com/okina,2
