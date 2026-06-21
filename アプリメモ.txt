@@ -26,3 +26,12 @@
 # 店舗詳細
 - 口コミと評価機能は欲しい
 
+
+
+---
+
+# 動作確認したい場合
+
+npm run dev      # http://localhost:3000 で確認
+# PWA(SW)込みで確認するなら:
+npm run build && npm run start
