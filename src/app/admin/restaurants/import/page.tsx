@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import Link from "next/link";
 import { parseCsv } from "@/lib/csv";
 import { adminHeaders } from "@/lib/adminClient";
@@ -33,6 +33,15 @@ export default function ImportPage() {
   const [parseError, setParseError] = useState("");
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<ImportResult | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  function resetFile() {
+    setFilename("");
+    setRows([]);
+    setResult(null);
+    setParseError("");
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  }
 
   function onFile(e: React.ChangeEvent<HTMLInputElement>) {
     setResult(null);
@@ -111,12 +120,37 @@ export default function ImportPage() {
           <code>sushi;izakaya</code>)。重複(電話 or 店名+住所)は更新します。
         </p>
 
-        <input
-          type="file"
-          accept=".csv,text/csv"
-          onChange={onFile}
-          className="mb-3 block text-sm"
-        />
+        {/* ファイルアップロード部品(明示ボタン。ロード時に自動でダイアログは開かない) */}
+        <div className="mb-4 rounded-2xl border border-dashed border-stone-300 bg-white p-4">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".csv,text/csv"
+            onChange={onFile}
+            className="hidden"
+          />
+          <div className="flex flex-wrap items-center gap-3">
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="rounded-full border border-stone-300 bg-stone-50 px-5 py-2.5 text-sm font-medium text-stone-800 hover:bg-stone-100"
+            >
+              CSVファイルを選択
+            </button>
+            <span className="text-sm text-stone-600">
+              {filename ? filename : "ファイルが選択されていません"}
+            </span>
+            {filename && (
+              <button
+                type="button"
+                onClick={resetFile}
+                className="text-xs text-stone-500 underline hover:text-stone-700"
+              >
+                クリア
+              </button>
+            )}
+          </div>
+        </div>
 
         {parseError && (
           <p className="mb-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
@@ -153,16 +187,22 @@ export default function ImportPage() {
                 </tbody>
               </table>
             </div>
-            <button
-              type="button"
-              onClick={onImport}
-              disabled={busy}
-              className="rounded-full bg-orange-800 px-6 py-3 font-medium text-orange-50 hover:bg-orange-900 disabled:opacity-60"
-            >
-              {busy ? "インポート中…" : `${rows.length} 件をインポート`}
-            </button>
           </>
         )}
+
+        {/* 投入ボタン(ファイル未選択時は無効) */}
+        <button
+          type="button"
+          onClick={onImport}
+          disabled={busy || rows.length === 0}
+          className="rounded-full bg-orange-800 px-6 py-3 font-medium text-orange-50 hover:bg-orange-900 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {busy
+            ? "インポート中…"
+            : rows.length > 0
+              ? `${rows.length} 件をインポート`
+              : "インポート(先にCSVを選択)"}
+        </button>
 
         {result && (
           <div className="mt-5 rounded-2xl border border-stone-200 bg-white p-4 text-sm">

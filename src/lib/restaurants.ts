@@ -1,5 +1,10 @@
 import { query } from "./db";
 
+/** ILIKE のワイルドカード(% _ \)をエスケープする。ESCAPE '\' と併用。 */
+function escapeLike(s: string): string {
+  return s.replace(/[\\%_]/g, (c) => `\\${c}`);
+}
+
 export interface RestaurantSearchParams {
   /** 自由語句(店名・住所・多言語名に対する全文検索) */
   q?: string;
@@ -69,8 +74,15 @@ export async function searchRestaurants(
   }
 
   if (params.q && params.q.trim() !== "") {
+    const q = params.q.trim();
+    // 全文検索(英数・空白区切り)と、トライグラムによる部分一致(日本語の
+    // 途中文字でもヒット)を OR で併用する。'simple' 設定は日本語を語に分割
+    // できないため、CJK は ILIKE '%...%' 側が拾う。
+    const ftsPh = bind(q);
+    const likePh = bind(`%${escapeLike(q)}%`);
     where.push(
-      `r.search_vector @@ websearch_to_tsquery('simple', ${bind(params.q.trim())})`
+      `(r.search_vector @@ websearch_to_tsquery('simple', ${ftsPh})` +
+        ` OR r.search_text ILIKE ${likePh} ESCAPE '\\')`
     );
   }
 
