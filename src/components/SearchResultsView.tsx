@@ -5,6 +5,7 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import type { RestaurantSearchResult } from "@/lib/restaurants";
 import FavoriteButton from "./FavoriteButton";
+import { translator, pickTranslation, type Locale } from "@/lib/i18n";
 
 // Leaflet は window 依存のためクライアントのみで読み込む。
 const RestaurantMap = dynamic(() => import("./RestaurantMap"), {
@@ -18,9 +19,12 @@ const RestaurantMap = dynamic(() => import("./RestaurantMap"), {
 
 export default function SearchResultsView({
   results,
+  locale = "ja",
 }: {
   results: RestaurantSearchResult[];
+  locale?: Locale;
 }) {
+  const t = translator(locale);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const itemRefs = useRef<Record<string, HTMLLIElement | null>>({});
 
@@ -37,7 +41,7 @@ export default function SearchResultsView({
   if (results.length === 0) {
     return (
       <p className="mx-auto mt-6 max-w-3xl rounded-2xl border border-dashed border-orange-300 bg-white/60 p-6 text-stone-600">
-        該当する和食店が見つかりませんでした。別のキーワードでお試しください。
+        {t("results.empty")}
       </p>
     );
   }
@@ -57,6 +61,7 @@ export default function SearchResultsView({
       <ul className="flex flex-col gap-3 p-4">
         {results.map((r) => {
           const selected = r.id === selectedId;
+          const displayName = pickTranslation(r.name_translations, locale, r.name);
           return (
             <li
               key={r.id}
@@ -75,24 +80,24 @@ export default function SearchResultsView({
                 className="w-full p-4 pb-2 text-left"
               >
                 <div className="flex items-baseline justify-between gap-3">
-                  <h2 className="font-semibold">{r.name}</h2>
+                  <h2 className="font-semibold">{displayName}</h2>
                   {r.rating_count > 0 && (
                     <span className="shrink-0 text-sm text-amber-600">
                       ★ {r.rating_avg.toFixed(1)}（{r.rating_count}）
                     </span>
                   )}
                 </div>
-                {r.name_translations?.en && (
-                  <p className="text-sm text-stone-500">
-                    {r.name_translations.en}
-                  </p>
+                {displayName !== r.name && (
+                  <p className="text-sm text-stone-500">{r.name}</p>
                 )}
                 {r.address && (
                   <p className="mt-1 text-sm text-stone-600">{r.address}</p>
                 )}
                 <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-stone-500">
                   {r.price_range && <span>{"¥".repeat(r.price_range)}</span>}
-                  <span>予約: {r.reservation_mode}</span>
+                  <span>
+                    {t("results.reservationLabel")}: {t(`resv.${r.reservation_mode}`)}
+                  </span>
                   {r.distance_m != null && (
                     <span>{Math.round(r.distance_m)} m</span>
                   )}
@@ -103,7 +108,7 @@ export default function SearchResultsView({
                   href={`/restaurants/${r.id}`}
                   className="text-sm font-medium text-orange-800 hover:text-orange-900"
                 >
-                  詳細・予約 →
+                  {t("results.detail")}
                 </Link>
                 <FavoriteButton
                   item={{

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { getAnonymousId } from "@/lib/clientStore";
+import { translator, type Locale } from "@/lib/i18n";
 
 const LANGS = [
   { code: "en", label: "English" },
@@ -20,9 +21,12 @@ type SubmitState =
 
 export default function ReservationForm({
   restaurantId,
+  locale = "ja",
 }: {
   restaurantId: string;
+  locale?: Locale;
 }) {
+  const t = translator(locale);
   const [state, setState] = useState<SubmitState>({ kind: "idle" });
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -82,18 +86,16 @@ export default function ReservationForm({
     return (
       <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-5">
         <h2 className="mb-1 font-semibold text-emerald-900">
-          予約リクエストを送信しました
+          {t("reserve.successTitle")}
         </h2>
-        <p className="text-sm text-emerald-800">
-          お店からの返答をお待ちください。確定または代替案をご連絡します。
-        </p>
+        <p className="text-sm text-emerald-800">{t("reserve.successBody")}</p>
         <dl className="mt-3 text-sm text-emerald-900">
           <div className="flex gap-2">
-            <dt className="text-emerald-700">受付番号:</dt>
+            <dt className="text-emerald-700">{t("reserve.refNo")}</dt>
             <dd className="font-mono">{state.id}</dd>
           </div>
           <div className="flex gap-2">
-            <dt className="text-emerald-700">状態:</dt>
+            <dt className="text-emerald-700">{t("reserve.status")}</dt>
             <dd>{state.status}</dd>
           </div>
         </dl>
@@ -101,7 +103,7 @@ export default function ReservationForm({
           href={`/restaurants/${restaurantId}`}
           className="mt-4 inline-block rounded-full border border-emerald-300 px-5 py-2 text-sm font-medium text-emerald-900 hover:bg-emerald-100"
         >
-          ← 店舗詳細に戻る
+          {t("reserve.back")}
         </Link>
       </div>
     );
@@ -116,17 +118,17 @@ export default function ReservationForm({
     <form onSubmit={onSubmit} className="flex flex-col gap-4">
       <div className="grid grid-cols-2 gap-3">
         <label>
-          <span className={labelClass}>来店希望日 *</span>
+          <span className={labelClass}>{t("reserve.date")}</span>
           <input type="date" name="date" required className={inputClass} />
         </label>
         <label>
-          <span className={labelClass}>時間 *</span>
+          <span className={labelClass}>{t("reserve.time")}</span>
           <input type="time" name="time" required className={inputClass} />
         </label>
       </div>
 
       <label>
-        <span className={labelClass}>人数 *</span>
+        <span className={labelClass}>{t("reserve.partySize")}</span>
         <input
           type="number"
           name="partySize"
@@ -138,24 +140,24 @@ export default function ReservationForm({
       </label>
 
       <label>
-        <span className={labelClass}>お名前 *</span>
+        <span className={labelClass}>{t("reserve.name")}</span>
         <input type="text" name="guestName" required className={inputClass} />
       </label>
 
       <div className="grid grid-cols-2 gap-3">
         <label>
-          <span className={labelClass}>メール</span>
+          <span className={labelClass}>{t("reserve.email")}</span>
           <input type="email" name="guestEmail" className={inputClass} />
         </label>
         <label>
-          <span className={labelClass}>電話</span>
+          <span className={labelClass}>{t("reserve.phone")}</span>
           <input type="tel" name="guestPhone" className={inputClass} />
         </label>
       </div>
 
       <label>
-        <span className={labelClass}>ご利用言語</span>
-        <select name="guestLang" defaultValue="en" className={inputClass}>
+        <span className={labelClass}>{t("reserve.lang")}</span>
+        <select name="guestLang" defaultValue={locale} className={inputClass}>
           {LANGS.map((l) => (
             <option key={l.code} value={l.code}>
               {l.label}
@@ -166,19 +168,19 @@ export default function ReservationForm({
 
       <fieldset className="rounded-lg border border-orange-100 p-3">
         <legend className="px-1 text-sm font-medium text-stone-700">
-          食事の制限
+          {t("reserve.dietary")}
         </legend>
         <div className="flex gap-4 text-sm">
           <label className="flex items-center gap-2">
-            <input type="checkbox" name="vegetarian" /> ベジタリアン
+            <input type="checkbox" name="vegetarian" /> {t("reserve.vegetarian")}
           </label>
           <label className="flex items-center gap-2">
-            <input type="checkbox" name="halal" /> ハラル
+            <input type="checkbox" name="halal" /> {t("reserve.halal")}
           </label>
         </div>
         <label className="mt-2 block">
           <span className="text-sm text-stone-600">
-            アレルギー(カンマ区切り)
+            {t("reserve.allergies")}
           </span>
           <input
             type="text"
@@ -190,26 +192,26 @@ export default function ReservationForm({
       </fieldset>
 
       <label>
-        <span className={labelClass}>予算(1人あたり・円)</span>
+        <span className={labelClass}>{t("reserve.budget")}</span>
         <input type="number" name="budget" min={0} className={inputClass} />
       </label>
 
       <label>
-        <span className={labelClass}>ご要望(自由記入)</span>
+        <span className={labelClass}>{t("reserve.requests")}</span>
         <textarea
           name="requests"
           rows={3}
-          placeholder="窓際の席を希望、記念日です、など"
+          placeholder={t("reserve.requestsPlaceholder")}
           className={inputClass}
         />
         <span className="mt-1 block text-xs text-stone-400">
-          入力内容は原文のままお店へ伝え、日本語訳を併記します。
+          {t("reserve.requestsHint")}
         </span>
       </label>
 
       {state.kind === "error" && (
         <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
-          送信に失敗しました（{state.message}）。入力内容をご確認ください。
+          {t("reserve.failed", { error: state.message })}
         </p>
       )}
 
@@ -218,7 +220,7 @@ export default function ReservationForm({
         disabled={submitting}
         className="rounded-full bg-orange-800 px-6 py-3 font-medium text-orange-50 hover:bg-orange-900 disabled:opacity-60"
       >
-        {submitting ? "送信中…" : "予約をリクエスト"}
+        {submitting ? t("reserve.submitting") : t("reserve.submit")}
       </button>
     </form>
   );

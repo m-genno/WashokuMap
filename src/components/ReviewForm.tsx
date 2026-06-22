@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { getAnonymousId } from "@/lib/clientStore";
+import { translator, type Locale } from "@/lib/i18n";
 
 const LANGS = [
   { code: "en", label: "English" },
@@ -33,12 +34,19 @@ type Phase =
  * 口コミ投稿フォーム。予約実績(confirmed/completed)のあるユーザにのみ表示。
  * マウント時に匿名IDで投稿資格を問い合わせ、資格がなければ案内文のみ出す。
  */
-export default function ReviewForm({ restaurantId }: { restaurantId: string }) {
+export default function ReviewForm({
+  restaurantId,
+  locale = "ja",
+}: {
+  restaurantId: string;
+  locale?: Locale;
+}) {
   const router = useRouter();
+  const t = translator(locale);
   const [phase, setPhase] = useState<Phase>({ kind: "loading" });
   const [rating, setRating] = useState(5);
   const [body, setBody] = useState("");
-  const [bodyLang, setBodyLang] = useState("en");
+  const [bodyLang, setBodyLang] = useState<string>(locale);
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -110,13 +118,13 @@ export default function ReviewForm({ restaurantId }: { restaurantId: string }) {
   }
 
   if (phase.kind === "loading") {
-    return <p className="text-sm text-stone-400">投稿資格を確認中…</p>;
+    return <p className="text-sm text-stone-400">{t("review.checking")}</p>;
   }
 
   if (phase.kind === "done") {
     return (
       <p className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
-        口コミを投稿しました。ありがとうございます。
+        {t("review.done")}
       </p>
     );
   }
@@ -125,7 +133,7 @@ export default function ReviewForm({ restaurantId }: { restaurantId: string }) {
   if (!ctx.eligible) {
     return (
       <p className="rounded-xl border border-dashed border-stone-300 bg-white/60 px-3 py-2 text-sm text-stone-500">
-        口コミは、このお店で予約・来店された方のみ投稿できます。
+        {t("review.notEligible")}
       </p>
     );
   }
@@ -140,7 +148,7 @@ export default function ReviewForm({ restaurantId }: { restaurantId: string }) {
       className="rounded-xl border border-orange-100 bg-white p-4"
     >
       <p className="mb-2 text-sm font-medium text-stone-700">
-        {ctx.existing ? "口コミを編集" : "口コミを投稿"}
+        {ctx.existing ? t("review.titleEdit") : t("review.titleNew")}
       </p>
 
       {/* 星評価 */}
@@ -162,21 +170,20 @@ export default function ReviewForm({ restaurantId }: { restaurantId: string }) {
       </div>
 
       <label className="block">
-        <span className="text-sm text-stone-600">コメント(任意)</span>
+        <span className="text-sm text-stone-600">{t("review.comment")}</span>
         <textarea
           value={body}
           onChange={(e) => setBody(e.target.value)}
           rows={3}
-          placeholder="料理や雰囲気の感想など"
           className={inputClass}
         />
         <span className="mt-1 block text-xs text-stone-400">
-          日本語以外で書くと、お店向けに日本語訳も保存します。
+          {t("review.commentHint")}
         </span>
       </label>
 
       <label className="mt-2 block">
-        <span className="text-sm text-stone-600">投稿言語</span>
+        <span className="text-sm text-stone-600">{t("review.lang")}</span>
         <select
           value={bodyLang}
           onChange={(e) => setBodyLang(e.target.value)}
@@ -192,7 +199,7 @@ export default function ReviewForm({ restaurantId }: { restaurantId: string }) {
 
       {error && (
         <p className="mt-2 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
-          投稿に失敗しました（{error}）。
+          {t("review.failed", { error })}
         </p>
       )}
 
@@ -201,7 +208,11 @@ export default function ReviewForm({ restaurantId }: { restaurantId: string }) {
         disabled={submitting}
         className="mt-3 rounded-full bg-orange-800 px-6 py-2.5 text-sm font-medium text-orange-50 hover:bg-orange-900 disabled:opacity-60"
       >
-        {submitting ? "送信中…" : ctx.existing ? "更新する" : "投稿する"}
+        {submitting
+          ? t("review.submitting")
+          : ctx.existing
+            ? t("review.update")
+            : t("review.submit")}
       </button>
     </form>
   );

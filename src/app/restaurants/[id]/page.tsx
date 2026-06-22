@@ -9,6 +9,9 @@ import DetailMap from "@/components/DetailMap";
 import FavoriteButton from "@/components/FavoriteButton";
 import ReviewForm from "@/components/ReviewForm";
 import ReportReviewButton from "@/components/ReportReviewButton";
+import LocaleSwitcher from "@/components/LocaleSwitcher";
+import { getLocale } from "@/lib/serverLocale";
+import { translator, pickTranslation, type TFn } from "@/lib/i18n";
 
 export const dynamic = "force-dynamic";
 
@@ -52,6 +55,13 @@ export default async function RestaurantPage({
   const r = await getRestaurantById(id);
   if (!r) notFound();
 
+  const locale = await getLocale();
+  const t = translator(locale);
+  const displayName = pickTranslation(r.name_translations, locale, r.name);
+  const displayDescription = r.description
+    ? pickTranslation(r.description_translations, locale, r.description)
+    : null;
+
   const hoursByDay = groupHours(r.hours);
 
   return (
@@ -66,12 +76,15 @@ export default async function RestaurantPage({
               WashokuMap
             </span>
           </Link>
-          <Link
-            href="/search"
-            className="ml-auto text-sm text-stone-500 hover:text-stone-800"
-          >
-            ← 検索に戻る
-          </Link>
+          <div className="ml-auto flex items-center gap-3">
+            <LocaleSwitcher current={locale} />
+            <Link
+              href="/search"
+              className="text-sm text-stone-500 hover:text-stone-800"
+            >
+              {t("nav.back")}
+            </Link>
+          </div>
         </div>
       </header>
 
@@ -98,7 +111,7 @@ export default async function RestaurantPage({
         {/* 見出し */}
         <div className="mb-4">
           <div className="flex items-start justify-between gap-3">
-            <h1 className="text-2xl font-bold">{r.name}</h1>
+            <h1 className="text-2xl font-bold">{displayName}</h1>
             <div className="flex shrink-0 items-center gap-3 pt-1">
               {r.rating_count > 0 && (
                 <span className="text-amber-600">
@@ -115,8 +128,8 @@ export default async function RestaurantPage({
               />
             </div>
           </div>
-          {r.name_translations?.en && (
-            <p className="text-stone-500">{r.name_translations.en}</p>
+          {displayName !== r.name && (
+            <p className="text-stone-500">{r.name}</p>
           )}
           <div className="mt-2 flex flex-wrap items-center gap-2">
             {r.price_range && (
@@ -129,7 +142,7 @@ export default async function RestaurantPage({
                 key={g.code}
                 className="rounded-full bg-orange-100 px-2 py-0.5 text-xs text-orange-900"
               >
-                {g.name_translations?.ja ?? g.code}
+                {pickTranslation(g.name_translations, locale, g.code)}
               </span>
             ))}
           </div>
@@ -141,20 +154,21 @@ export default async function RestaurantPage({
           reservationUrl={r.reservation_url}
           phone={r.phone}
           id={r.id}
+          t={t}
         />
 
         {/* 説明 */}
-        {r.description && (
+        {displayDescription && (
           <section className="mb-6">
-            <h2 className="mb-1 font-semibold">紹介</h2>
-            <p className="text-stone-700">{r.description}</p>
+            <h2 className="mb-1 font-semibold">{t("detail.sectionIntro")}</h2>
+            <p className="text-stone-700">{displayDescription}</p>
           </section>
         )}
 
         {/* 営業時間 */}
         {r.hours.length > 0 && (
           <section className="mb-6">
-            <h2 className="mb-2 font-semibold">営業時間</h2>
+            <h2 className="mb-2 font-semibold">{t("detail.sectionHours")}</h2>
             <table className="w-full max-w-sm text-sm">
               <tbody>
                 {DAY_LABELS.map((label, day) => {
@@ -184,32 +198,31 @@ export default async function RestaurantPage({
 
         {/* 地図・住所 */}
         <section className="mb-6">
-          <h2 className="mb-2 font-semibold">アクセス</h2>
+          <h2 className="mb-2 font-semibold">{t("detail.sectionAccess")}</h2>
           {r.address && <p className="mb-2 text-stone-700">{r.address}</p>}
           {r.lat != null && r.lng != null ? (
             <div className="h-64 overflow-hidden rounded-xl">
-              <DetailMap id={r.id} name={r.name} lat={r.lat} lng={r.lng} />
+              <DetailMap id={r.id} name={displayName} lat={r.lat} lng={r.lng} />
             </div>
           ) : (
-            <p className="text-sm text-stone-500">位置情報は未登録です。</p>
+            <p className="text-sm text-stone-500">{t("detail.noLocation")}</p>
           )}
         </section>
 
         {/* 口コミ */}
         <section className="mb-10">
           <h2 className="mb-2 font-semibold">
-            口コミ {r.reviews.length > 0 && `(${r.reviews.length})`}
+            {t("detail.sectionReviews")}{" "}
+            {r.reviews.length > 0 && `(${r.reviews.length})`}
           </h2>
 
           {/* 投稿フォーム(予約実績のある匿名ユーザのみ表示) */}
           <div className="mb-4">
-            <ReviewForm restaurantId={r.id} />
+            <ReviewForm restaurantId={r.id} locale={locale} />
           </div>
 
           {r.reviews.length === 0 ? (
-            <p className="text-sm text-stone-500">
-              まだ口コミがありません。予約・来店された方が投稿できます。
-            </p>
+            <p className="text-sm text-stone-500">{t("detail.noReviews")}</p>
           ) : (
             <ul className="flex flex-col gap-3">
               {r.reviews.map((rv) => (
@@ -231,13 +244,16 @@ export default async function RestaurantPage({
                   {rv.body && (
                     <p className="mt-1 text-sm text-stone-700">{rv.body}</p>
                   )}
-                  {rv.body_lang !== "ja" && rv.body_translations?.ja && (
-                    <p className="mt-1 border-l-2 border-orange-100 pl-2 text-sm text-stone-500">
-                      和訳: {rv.body_translations.ja}
-                    </p>
-                  )}
+                  {locale === "ja" &&
+                    rv.body_lang !== "ja" &&
+                    rv.body_translations?.ja && (
+                      <p className="mt-1 border-l-2 border-orange-100 pl-2 text-sm text-stone-500">
+                        {t("detail.translated")}
+                        {rv.body_translations.ja}
+                      </p>
+                    )}
                   <div className="mt-2 flex justify-end">
-                    <ReportReviewButton reviewId={rv.id} />
+                    <ReportReviewButton reviewId={rv.id} locale={locale} />
                   </div>
                 </li>
               ))}
@@ -254,11 +270,13 @@ function ReservationPanel({
   reservationUrl,
   phone,
   id,
+  t,
 }: {
   mode: "request" | "external" | "phone_only";
   reservationUrl: string | null;
   phone: string | null;
   id: string;
+  t: TFn;
 }) {
   const primaryClass =
     "inline-flex items-center justify-center rounded-full bg-orange-800 px-6 py-3 font-medium text-orange-50 hover:bg-orange-900";
@@ -274,28 +292,27 @@ function ReservationPanel({
           rel="noopener noreferrer"
           className={primaryClass}
         >
-          公式サイトで予約
+          {t("detail.reserveExternal")}
         </a>
       ) : mode === "phone_only" ? (
         phone ? (
           <a href={`tel:${phone}`} className={primaryClass}>
-            電話で予約 {phone}
+            {t("detail.reservePhone", { phone })}
           </a>
         ) : (
           <p className="text-sm text-stone-500">
-            このお店は電話予約のみですが、電話番号が未登録です。
+            {t("detail.phoneOnlyNoPhone")}
           </p>
         )
       ) : (
         // request モード
         <div className="flex flex-wrap items-center gap-3">
-          {/* 予約フォームは次フェーズ。今は導線のみ用意。 */}
           <Link href={`/restaurants/${id}/reserve`} className={primaryClass}>
-            予約をリクエスト
+            {t("detail.reserveRequest")}
           </Link>
           {phone && (
             <a href={`tel:${phone}`} className={secondaryClass}>
-              電話で問い合わせ
+              {t("detail.phoneInquiry")}
             </a>
           )}
         </div>

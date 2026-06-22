@@ -4,6 +4,9 @@ import { listGenres } from "@/lib/genres";
 import SearchResultsView from "@/components/SearchResultsView";
 import SearchBar from "@/components/SearchBar";
 import SearchFilters from "@/components/SearchFilters";
+import LocaleSwitcher from "@/components/LocaleSwitcher";
+import { getLocale } from "@/lib/serverLocale";
+import { translator } from "@/lib/i18n";
 
 export const dynamic = "force-dynamic";
 
@@ -22,6 +25,8 @@ export default async function SearchPage({
 }) {
   const sp = await searchParams;
   const q = sp.q ?? "";
+  const locale = await getLocale();
+  const t = translator(locale);
 
   const [results, genres] = await Promise.all([
     searchRestaurants({
@@ -47,7 +52,8 @@ export default async function SearchPage({
             </span>
           </Link>
           <div className="ml-auto flex flex-1 items-center gap-3">
-            <SearchBar size="sm" defaultValue={q} />
+            <SearchBar size="sm" defaultValue={q} locale={locale} />
+            <LocaleSwitcher current={locale} />
             <Link
               href="/favorites"
               className="hidden shrink-0 text-sm text-stone-500 hover:text-stone-800 sm:inline"
@@ -57,10 +63,11 @@ export default async function SearchPage({
           </div>
         </div>
         <p className="mx-auto max-w-5xl px-4 pb-2 text-xs text-stone-500 sm:px-6">
-          {q ? <>「{q}」の検索結果: </> : "検索結果: "}
-          {results.length} 件
+          {q ? t("search.headingWithQuery", { q }) : t("search.heading")}
+          {t("search.count", { count: results.length })}
         </p>
         <SearchFilters
+          locale={locale}
           genres={genres}
           current={{
             q: sp.q,
@@ -73,7 +80,7 @@ export default async function SearchPage({
       </header>
 
       <main className="flex-1">
-        <SearchResultsView results={results} />
+        <SearchResultsView results={results} locale={locale} />
       </main>
     </div>
   );

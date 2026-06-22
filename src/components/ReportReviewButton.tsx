@@ -2,18 +2,25 @@
 
 import { useState } from "react";
 import { getAnonymousId } from "@/lib/clientStore";
+import { translator, type Locale } from "@/lib/i18n";
 
 type State = "idle" | "open" | "sending" | "done" | "error";
 
-const REASONS = [
-  "不適切な内容・誹謗中傷",
-  "スパム・宣伝",
-  "事実と異なる",
-  "その他",
-];
-
 /** 口コミの通報ボタン。匿名可。理由を選んで送信する。 */
-export default function ReportReviewButton({ reviewId }: { reviewId: string }) {
+export default function ReportReviewButton({
+  reviewId,
+  locale = "ja",
+}: {
+  reviewId: string;
+  locale?: Locale;
+}) {
+  const t = translator(locale);
+  const REASONS = [
+    t("report.reason1"),
+    t("report.reason2"),
+    t("report.reason3"),
+    t("report.reason4"),
+  ];
   const [state, setState] = useState<State>("idle");
   const [reason, setReason] = useState(REASONS[0]);
 
@@ -32,9 +39,7 @@ export default function ReportReviewButton({ reviewId }: { reviewId: string }) {
   }
 
   if (state === "done") {
-    return (
-      <span className="text-xs text-stone-400">通報を受け付けました</span>
-    );
+    return <span className="text-xs text-stone-400">{t("report.done")}</span>;
   }
 
   if (state === "idle") {
@@ -44,7 +49,7 @@ export default function ReportReviewButton({ reviewId }: { reviewId: string }) {
         onClick={() => setState("open")}
         className="text-xs text-stone-400 hover:text-stone-600 hover:underline"
       >
-        通報
+        {t("report.button")}
       </button>
     );
   }
@@ -69,17 +74,17 @@ export default function ReportReviewButton({ reviewId }: { reviewId: string }) {
         disabled={state === "sending"}
         className="rounded-full bg-stone-700 px-3 py-1 text-xs font-medium text-stone-50 hover:bg-stone-800 disabled:opacity-60"
       >
-        {state === "sending" ? "送信中…" : "通報する"}
+        {state === "sending" ? t("report.sending") : t("report.submit")}
       </button>
       <button
         type="button"
         onClick={() => setState("idle")}
         className="text-xs text-stone-400 hover:text-stone-600"
       >
-        やめる
+        {t("report.cancel")}
       </button>
       {state === "error" && (
-        <span className="text-xs text-red-600">送信に失敗しました</span>
+        <span className="text-xs text-red-600">{t("report.failed")}</span>
       )}
     </div>
   );

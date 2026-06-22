@@ -2,16 +2,20 @@
 
 import { useRouter } from "next/navigation";
 import { addHistory } from "@/lib/clientStore";
+import { translator, type Locale } from "@/lib/i18n";
 
 /** 検索バー。送信時に検索履歴(localStorage)へ記録してから /search へ遷移。 */
 export default function SearchBar({
   defaultValue = "",
   size = "lg",
+  locale = "ja",
 }: {
   defaultValue?: string;
   size?: "lg" | "sm";
+  locale?: Locale;
 }) {
   const router = useRouter();
+  const t = translator(locale);
 
   function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -30,15 +34,15 @@ export default function SearchBar({
         type="search"
         name="q"
         defaultValue={defaultValue}
-        placeholder="店名・ジャンル・エリアで検索(例: 寿司 渋谷)"
-        aria-label="和食店を検索"
+        placeholder={t("searchBar.placeholder")}
+        aria-label={t("searchBar.aria")}
         className={`flex-1 rounded-full border border-orange-200 bg-white outline-none placeholder:text-stone-400 focus:border-orange-400 ${pad}`}
       />
       <button
         type="submit"
         className={`rounded-full bg-orange-800 font-medium text-orange-50 transition-colors hover:bg-orange-900 ${btnPad}`}
       >
-        検索
+        {t("searchBar.button")}
       </button>
     </form>
   );

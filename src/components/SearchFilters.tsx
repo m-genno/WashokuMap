@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { Genre } from "@/lib/genres";
+import { translator, pickTranslation, type Locale } from "@/lib/i18n";
 
 export interface SearchFilterState {
   q?: string;
@@ -21,11 +22,14 @@ export interface SearchFilterState {
 export default function SearchFilters({
   genres,
   current,
+  locale = "ja",
 }: {
   genres: Genre[];
   current: SearchFilterState;
+  locale?: Locale;
 }) {
   const router = useRouter();
+  const t = translator(locale);
   const [locating, setLocating] = useState(false);
   const [locError, setLocError] = useState("");
 
@@ -51,7 +55,7 @@ export default function SearchFilters({
   function useCurrentLocation() {
     setLocError("");
     if (!("geolocation" in navigator)) {
-      setLocError("この端末では現在地を取得できません。");
+      setLocError(t("filters.errUnsupported"));
       return;
     }
     setLocating(true);
@@ -70,8 +74,8 @@ export default function SearchFilters({
         setLocating(false);
         setLocError(
           err.code === err.PERMISSION_DENIED
-            ? "位置情報の利用が許可されませんでした。"
-            : "現在地を取得できませんでした。"
+            ? t("filters.errDenied")
+            : t("filters.errGeneric")
         );
       },
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
@@ -89,14 +93,18 @@ export default function SearchFilters({
         {hasGeo ? (
           <>
             <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-3 py-1 text-xs font-medium text-emerald-800">
-              📍 現在地周辺{current.radius ? `（半径${Math.round(Number(current.radius) / 1000) || 1}km）` : ""}
+              {t("filters.nearby", {
+                radius: current.radius
+                  ? Math.round(Number(current.radius) / 1000) || 1
+                  : 3,
+              })}
             </span>
             <button
               type="button"
               onClick={clearLocation}
               className="text-xs text-stone-500 underline hover:text-stone-700"
             >
-              現在地を解除
+              {t("filters.clearLocation")}
             </button>
           </>
         ) : (
@@ -106,7 +114,7 @@ export default function SearchFilters({
             disabled={locating}
             className="inline-flex items-center gap-1 rounded-full border border-orange-300 bg-white px-3 py-1.5 text-xs font-medium text-orange-800 hover:bg-orange-100 disabled:opacity-60"
           >
-            📍 {locating ? "現在地を取得中…" : "現在地から探す"}
+            {locating ? t("filters.locating") : t("filters.useLocation")}
           </button>
         )}
         {locError && <span className="text-xs text-red-600">{locError}</span>}
@@ -116,7 +124,7 @@ export default function SearchFilters({
       <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:flex-wrap sm:px-0">
         {genres.map((g) => {
           const active = current.genre === g.code;
-          const label = g.name_translations.ja ?? g.code;
+          const label = pickTranslation(g.name_translations, locale, g.code);
           return (
             <button
               key={g.code}
