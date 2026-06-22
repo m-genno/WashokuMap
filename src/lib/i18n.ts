@@ -51,6 +51,16 @@ type Dict = Record<string, string>;
 const ja: Dict = {
   "nav.favorites": "♥ お気に入り",
   "nav.back": "← 検索に戻る",
+  "nav.search": "検索する →",
+
+  "fav.title": "お気に入り",
+  "fav.empty":
+    "お気に入りはまだありません。店舗カードや詳細ページの ♡ から追加できます(この端末に保存されます)。",
+  "fav.remove": "削除",
+
+  "offline.title": "オフラインです",
+  "offline.message":
+    "ネットワークに接続できませんでした。接続が回復してから、もう一度お試しください。",
 
   "home.heroTitle": "隠れた和食の名店を、登録不要で見つけて予約。",
   "home.heroLead":
@@ -164,6 +174,16 @@ const ja: Dict = {
 const en: Dict = {
   "nav.favorites": "♥ Favorites",
   "nav.back": "← Back to search",
+  "nav.search": "Search →",
+
+  "fav.title": "Favorites",
+  "fav.empty":
+    "No favorites yet. Add them with the ♡ on restaurant cards or detail pages (saved on this device).",
+  "fav.remove": "Remove",
+
+  "offline.title": "You’re offline",
+  "offline.message":
+    "Couldn’t connect to the network. Please reconnect and try again.",
 
   "home.heroTitle": "Find and reserve hidden washoku gems — no sign-up needed.",
   "home.heroLead":
@@ -280,6 +300,15 @@ const en: Dict = {
 const zhHans: Dict = {
   "nav.favorites": "♥ 收藏",
   "nav.back": "← 返回搜索",
+  "nav.search": "搜索 →",
+
+  "fav.title": "收藏",
+  "fav.empty":
+    "还没有收藏。可在店铺卡片或详情页的 ♡ 添加(保存在本设备)。",
+  "fav.remove": "删除",
+
+  "offline.title": "已离线",
+  "offline.message": "无法连接网络。请在恢复连接后重试。",
 
   "home.heroTitle": "发现并预订隐藏的和食名店——无需注册。",
   "home.heroLead":
@@ -387,6 +416,15 @@ const zhHans: Dict = {
 const zhHant: Dict = {
   "nav.favorites": "♥ 收藏",
   "nav.back": "← 返回搜尋",
+  "nav.search": "搜尋 →",
+
+  "fav.title": "收藏",
+  "fav.empty":
+    "尚無收藏。可在店家卡片或詳情頁的 ♡ 加入(儲存在本裝置)。",
+  "fav.remove": "刪除",
+
+  "offline.title": "已離線",
+  "offline.message": "無法連線網路。請在恢復連線後重試。",
 
   "home.heroTitle": "發現並預訂隱藏的和食名店——免註冊。",
   "home.heroLead":
@@ -494,6 +532,16 @@ const zhHant: Dict = {
 const ko: Dict = {
   "nav.favorites": "♥ 즐겨찾기",
   "nav.back": "← 검색으로 돌아가기",
+  "nav.search": "검색하기 →",
+
+  "fav.title": "즐겨찾기",
+  "fav.empty":
+    "아직 즐겨찾기가 없습니다. 가게 카드나 상세 페이지의 ♡ 로 추가할 수 있습니다(이 기기에 저장됩니다).",
+  "fav.remove": "삭제",
+
+  "offline.title": "오프라인입니다",
+  "offline.message":
+    "네트워크에 연결할 수 없습니다. 연결이 회복된 후 다시 시도해 주세요.",
 
   "home.heroTitle": "숨은 일식 명점을 회원가입 없이 찾고 예약하세요.",
   "home.heroLead":
