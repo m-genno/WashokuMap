@@ -3,8 +3,10 @@ import { getRestaurantById } from "@/lib/restaurants";
 import {
   getReviewContext,
   upsertReview,
+  MAX_REVIEW_PHOTOS,
   type ReviewContext,
 } from "@/lib/reviews";
+import { isUploadUrl } from "@/lib/uploads";
 import {
   getUserIdByAnonymousId,
   getOrCreateUserByAnonymousId,
@@ -49,6 +51,7 @@ interface ReviewBody {
   rating?: number;
   body?: string | null;
   bodyLang?: string;
+  photos?: unknown;
 }
 
 /**
@@ -78,6 +81,13 @@ export async function POST(
 
   const bodyText = payload.body?.trim() || null;
   const bodyLang = payload.bodyLang?.trim() || "en";
+
+  // 写真URLは自前のアップロード(/api/uploads/...)のみ許可(外部URL混入を防ぐ)。
+  const photos = Array.isArray(payload.photos)
+    ? payload.photos.filter((p): p is string => typeof p === "string")
+    : [];
+  if (photos.length > MAX_REVIEW_PHOTOS) return bad("too_many_photos");
+  if (!photos.every(isUploadUrl)) return bad("invalid_photo");
 
   // 店舗の存在(公開)確認。
   const restaurant = await getRestaurantById(restaurantId);
@@ -111,6 +121,7 @@ export async function POST(
       body: bodyText,
       bodyLang,
       bodyTranslations,
+      photos,
     });
     return NextResponse.json({ review }, { status: 201 });
   } catch (err) {

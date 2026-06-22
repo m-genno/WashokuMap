@@ -147,6 +147,7 @@ export interface RestaurantReview {
   body_lang: string;
   body_translations: Record<string, string>;
   created_at: string;
+  photos: string[];
 }
 
 export interface RestaurantDetail {
@@ -212,9 +213,16 @@ export async function getRestaurantById(
       [id]
     ),
     query<RestaurantReview>(
-      `SELECT id, rating, body, body_lang, body_translations, created_at FROM review
-       WHERE restaurant_id = $1 AND status = 'published'
-       ORDER BY created_at DESC LIMIT 20`,
+      `SELECT rv.id, rv.rating, rv.body, rv.body_lang, rv.body_translations,
+              rv.created_at,
+              COALESCE(
+                (SELECT array_agg(rp.url ORDER BY rp.sort_order)
+                 FROM review_photo rp WHERE rp.review_id = rv.id),
+                '{}'
+              ) AS photos
+       FROM review rv
+       WHERE rv.restaurant_id = $1 AND rv.status = 'published'
+       ORDER BY rv.created_at DESC LIMIT 20`,
       [id]
     ),
   ]);

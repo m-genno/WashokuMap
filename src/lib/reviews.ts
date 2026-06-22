@@ -1,4 +1,4 @@
-import { query } from "./db";
+import { pool, query } from "./db";
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -8,10 +8,13 @@ const REPORT_REASON_MAX = 500;
 /** 投稿資格とみなす予約ステータス(=来店実績ありとみなす)。 */
 const QUALIFYING_STATUSES = ["confirmed", "completed"] as const;
 
+export const MAX_REVIEW_PHOTOS = 4;
+
 export interface MyReview {
   rating: number;
   body: string | null;
   body_lang: string;
+  photos: string[];
 }
 
 export interface ReviewContext {
@@ -41,7 +44,13 @@ export async function getReviewContext(
       [restaurantId, userId, QUALIFYING_STATUSES as unknown as string[]]
     ),
     query<MyReview>(
-      `SELECT rating, body, body_lang FROM review
+      `SELECT rating, body, body_lang,
+              COALESCE(
+                (SELECT array_agg(rp.url ORDER BY rp.sort_order)
+                 FROM review_photo rp WHERE rp.review_id = review.id),
+                '{}'
+              ) AS photos
+       FROM review
        WHERE restaurant_id = $1 AND user_id = $2`,
       [restaurantId, userId]
     ),
@@ -63,6 +72,8 @@ export interface UpsertReviewInput {
   bodyLang: string;
   /** 日本語訳キャッシュ(呼び出し側で translateToJa して渡す)。例: {ja: "..."} */
   bodyTranslations: Record<string, string>;
+  /** 添付写真URL(/api/uploads/...)。未指定なら写真は変更しない。 */
+  photos?: string[];
 }
 
 export interface UpsertedReview {
@@ -82,30 +93,57 @@ export interface UpsertedReview {
 export async function upsertReview(
   input: UpsertReviewInput
 ): Promise<UpsertedReview> {
-  const rows = await query<UpsertedReview>(
-    `INSERT INTO review
-       (restaurant_id, user_id, reservation_id, rating, body, body_lang,
-        body_translations, status)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,'published')
-     ON CONFLICT (restaurant_id, user_id) DO UPDATE SET
-       reservation_id    = EXCLUDED.reservation_id,
-       rating            = EXCLUDED.rating,
-       body              = EXCLUDED.body,
-       body_lang         = EXCLUDED.body_lang,
-       body_translations = EXCLUDED.body_translations,
-       status            = 'published'
-     RETURNING id, rating, body, body_lang, status, created_at, updated_at`,
-    [
-      input.restaurantId,
-      input.userId,
-      input.reservationId,
-      input.rating,
-      input.body,
-      input.bodyLang,
-      JSON.stringify(input.bodyTranslations),
-    ]
-  );
-  return rows[0];
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    const rows = await client.query<UpsertedReview>(
+      `INSERT INTO review
+         (restaurant_id, user_id, reservation_id, rating, body, body_lang,
+          body_translations, status)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,'published')
+       ON CONFLICT (restaurant_id, user_id) DO UPDATE SET
+         reservation_id    = EXCLUDED.reservation_id,
+         rating            = EXCLUDED.rating,
+         body              = EXCLUDED.body,
+         body_lang         = EXCLUDED.body_lang,
+         body_translations = EXCLUDED.body_translations,
+         status            = 'published'
+       RETURNING id, rating, body, body_lang, status, created_at, updated_at`,
+      [
+        input.restaurantId,
+        input.userId,
+        input.reservationId,
+        input.rating,
+        input.body,
+        input.bodyLang,
+        JSON.stringify(input.bodyTranslations),
+      ]
+    );
+    const review = rows.rows[0];
+
+    // 写真が指定されていれば総入れ替え(編集時の差し替えにも対応)。
+    if (input.photos) {
+      const urls = input.photos.slice(0, MAX_REVIEW_PHOTOS);
+      await client.query(`DELETE FROM review_photo WHERE review_id = $1`, [
+        review.id,
+      ]);
+      for (let i = 0; i < urls.length; i++) {
+        await client.query(
+          `INSERT INTO review_photo (review_id, url, sort_order)
+           VALUES ($1, $2, $3)`,
+          [review.id, urls[i], i]
+        );
+      }
+    }
+
+    await client.query("COMMIT");
+    return review;
+  } catch (err) {
+    await client.query("ROLLBACK");
+    throw err;
+  } finally {
+    client.release();
+  }
 }
 
 // ---- モデレーション(通報・非表示) ----
@@ -157,6 +195,7 @@ export interface ModerationReviewRow {
   created_at: string;
   report_count: number;
   reasons: string[];
+  photos: string[];
 }
 
 /**
@@ -193,7 +232,12 @@ export async function listReviewsForModeration(opts: {
          (array_agg(rep.reason ORDER BY rep.created_at DESC)
             FILTER (WHERE rep.id IS NOT NULL))[1:5],
          '{}'
-       ) AS reasons
+       ) AS reasons,
+       COALESCE(
+         (SELECT array_agg(rp.url ORDER BY rp.sort_order)
+          FROM review_photo rp WHERE rp.review_id = rv.id),
+         '{}'
+       ) AS photos
      FROM review rv
      JOIN restaurant r ON r.id = rv.restaurant_id
      LEFT JOIN review_report rep ON rep.review_id = rv.id

@@ -253,6 +253,26 @@ export default async function RestaurantPage({
                         {rv.body_translations.ja}
                       </p>
                     )}
+                  {rv.photos.length > 0 && (
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {rv.photos.map((url) => (
+                        <a
+                          key={url}
+                          href={url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={url}
+                            alt=""
+                            loading="lazy"
+                            className="h-20 w-20 rounded-lg object-cover hover:opacity-90"
+                          />
+                        </a>
+                      ))}
+                    </div>
+                  )}
                   <div className="mt-2 flex justify-end">
                     <ReportReviewButton reviewId={rv.id} locale={locale} />
                   </div>

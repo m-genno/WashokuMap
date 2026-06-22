@@ -13,10 +13,13 @@ const LANGS = [
   { code: "ko", label: "한국어" },
 ];
 
+const MAX_PHOTOS = 4;
+
 interface MyReview {
   rating: number;
   body: string | null;
   body_lang: string;
+  photos: string[];
 }
 interface ReviewContext {
   eligible: boolean;
@@ -47,6 +50,8 @@ export default function ReviewForm({
   const [rating, setRating] = useState(5);
   const [body, setBody] = useState("");
   const [bodyLang, setBodyLang] = useState<string>(locale);
+  const [photos, setPhotos] = useState<string[]>([]);
+  const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -73,6 +78,7 @@ export default function ReviewForm({
           setRating(ctx.existing.rating);
           setBody(ctx.existing.body ?? "");
           setBodyLang(ctx.existing.body_lang);
+          setPhotos(ctx.existing.photos ?? []);
         }
         setPhase({ kind: "ready", ctx });
       } catch {
@@ -85,6 +91,40 @@ export default function ReviewForm({
       cancelled = true;
     };
   }, [restaurantId]);
+
+  async function onPickPhotos(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(e.target.files ?? []);
+    e.target.value = ""; // 同じファイルを連続選択できるようにリセット
+    if (files.length === 0) return;
+    setError("");
+    setUploading(true);
+    try {
+      const anonId = getAnonymousId();
+      const room = MAX_PHOTOS - photos.length;
+      for (const file of files.slice(0, room)) {
+        const fd = new FormData();
+        fd.append("file", file);
+        fd.append("anonymousId", anonId ?? "");
+        const res = await fetch("/api/uploads", { method: "POST", body: fd });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          setError(
+            data.error === "too_large"
+              ? t("review.photoTooLarge")
+              : t("review.uploadFailed")
+          );
+          continue;
+        }
+        setPhotos((ps) => (ps.length < MAX_PHOTOS ? [...ps, data.url] : ps));
+      }
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  function removePhoto(url: string) {
+    setPhotos((ps) => ps.filter((p) => p !== url));
+  }
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -101,6 +141,7 @@ export default function ReviewForm({
           rating,
           body: body.trim() || null,
           bodyLang,
+          photos,
         }),
       });
       const data = await res.json();
@@ -196,6 +237,52 @@ export default function ReviewForm({
           ))}
         </select>
       </label>
+
+      {/* 写真添付 */}
+      <div className="mt-3">
+        <span className="text-sm text-stone-600">
+          {t("review.photos")} ({photos.length}/{MAX_PHOTOS})
+        </span>
+        <div className="mt-1 flex flex-wrap items-center gap-2">
+          {photos.map((url) => (
+            <span key={url} className="relative">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={url}
+                alt=""
+                className="h-16 w-16 rounded-lg object-cover"
+              />
+              <button
+                type="button"
+                onClick={() => removePhoto(url)}
+                aria-label={t("review.removePhoto")}
+                className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-stone-700 text-xs text-white hover:bg-stone-900"
+              >
+                ×
+              </button>
+            </span>
+          ))}
+          {photos.length < MAX_PHOTOS && (
+            <label className="flex h-16 w-16 cursor-pointer items-center justify-center rounded-lg border border-dashed border-orange-300 text-xl text-orange-700 hover:bg-orange-50">
+              {uploading ? (
+                <span className="text-xs text-stone-400">
+                  {t("review.uploading")}
+                </span>
+              ) : (
+                "＋"
+              )}
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                multiple
+                onChange={onPickPhotos}
+                disabled={uploading}
+                className="hidden"
+              />
+            </label>
+          )}
+        </div>
+      </div>
 
       {error && (
         <p className="mt-2 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">

@@ -16,6 +16,7 @@ interface Row {
   created_at: string;
   report_count: number;
   reasons: string[];
+  photos: string[];
 }
 
 const FILTERS: { key: string; label: string }[] = [
@@ -177,6 +178,22 @@ export default function AdminReviewModerationList() {
                 <p className="mt-1 border-l-2 border-orange-100 pl-2 text-sm text-stone-500">
                   和訳: {r.body_translations.ja}
                 </p>
+              )}
+
+              {r.photos.length > 0 && (
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {r.photos.map((url) => (
+                    <a key={url} href={url} target="_blank" rel="noopener noreferrer">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={url}
+                        alt=""
+                        loading="lazy"
+                        className="h-16 w-16 rounded-lg object-cover"
+                      />
+                    </a>
+                  ))}
+                </div>
               )}
 
               {r.reasons.length > 0 && (
