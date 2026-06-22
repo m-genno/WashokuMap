@@ -100,6 +100,133 @@ export interface ReservationStatus {
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+export const RESERVATION_STATUSES = [
+  "requested",
+  "confirmed",
+  "declined",
+  "counter_offer",
+  "cancelled",
+  "completed",
+  "no_show",
+] as const;
+export type ReservationStatusValue = (typeof RESERVATION_STATUSES)[number];
+
+/** 予約デスクが許可する状態遷移。空配列＝終端(以後は変更不可)。 */
+const ALLOWED_TRANSITIONS: Record<ReservationStatusValue, ReservationStatusValue[]> =
+  {
+    requested: ["confirmed", "declined", "counter_offer", "cancelled"],
+    counter_offer: ["confirmed", "declined", "cancelled"],
+    confirmed: ["completed", "no_show", "cancelled"],
+    declined: [],
+    cancelled: [],
+    completed: [],
+    no_show: [],
+  };
+
+export interface AdminReservationRow {
+  id: string;
+  restaurant_id: string;
+  restaurant_name: string;
+  status: ReservationStatusValue;
+  party_size: number;
+  desired_at: string;
+  desired_alt_at: string | null;
+  guest_name: string;
+  guest_email: string | null;
+  guest_phone: string | null;
+  guest_lang: string;
+  requests: string | null;
+  requests_ja: string | null;
+  dietary: Record<string, unknown> | null;
+  budget_per_person: number | null;
+  created_at: string;
+}
+
+/** 予約デスク向けの予約一覧。status 指定で絞り込み(未指定=すべて)。 */
+export async function listReservationsForAdmin(opts: {
+  status?: ReservationStatusValue | null;
+  limit?: number;
+}): Promise<AdminReservationRow[]> {
+  const status = opts.status ?? null;
+  const limit = Math.min(Math.max(opts.limit ?? 100, 1), 500);
+  return query<AdminReservationRow>(
+    `SELECT
+       res.id, res.restaurant_id, r.name AS restaurant_name,
+       res.status, res.party_size, res.desired_at, res.desired_alt_at,
+       res.guest_name, res.guest_email, res.guest_phone, res.guest_lang,
+       res.requests, res.requests_ja, res.dietary, res.budget_per_person,
+       res.created_at
+     FROM reservation res
+     JOIN restaurant r ON r.id = res.restaurant_id
+     WHERE ($1::text IS NULL OR res.status = $1)
+     ORDER BY res.created_at DESC
+     LIMIT $2`,
+    [status, limit]
+  );
+}
+
+export type SetReservationStatusResult =
+  | { ok: true; reservation: { id: string; status: ReservationStatusValue; from_status: ReservationStatusValue } }
+  | { ok: false; reason: "not_found" | "invalid_transition"; from?: ReservationStatusValue };
+
+/**
+ * 予約の状態を遷移させ、監査ログ(reservation_event)を1トランザクションで記録する。
+ * - 許可されない遷移は invalid_transition で拒否(終端状態からの変更も不可)。
+ * - confirmed へ遷移したときは confirmed_at を打刻。
+ */
+export async function setReservationStatus(
+  id: string,
+  toStatus: ReservationStatusValue,
+  opts: { actor?: string; note?: string | null } = {}
+): Promise<SetReservationStatusResult> {
+  if (!UUID_RE.test(id)) return { ok: false, reason: "not_found" };
+
+  const actor = opts.actor ?? "desk";
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+
+    const cur = await client.query<{ status: ReservationStatusValue }>(
+      `SELECT status FROM reservation WHERE id = $1 FOR UPDATE`,
+      [id]
+    );
+    if (cur.rows.length === 0) {
+      await client.query("ROLLBACK");
+      return { ok: false, reason: "not_found" };
+    }
+    const from = cur.rows[0].status;
+
+    if (!ALLOWED_TRANSITIONS[from]?.includes(toStatus)) {
+      await client.query("ROLLBACK");
+      return { ok: false, reason: "invalid_transition", from };
+    }
+
+    await client.query(
+      `UPDATE reservation
+       SET status = $2,
+           confirmed_at = CASE WHEN $2 = 'confirmed' THEN now() ELSE confirmed_at END,
+           handled_by = $3
+       WHERE id = $1`,
+      [id, toStatus, actor]
+    );
+
+    await client.query(
+      `INSERT INTO reservation_event
+         (reservation_id, from_status, to_status, channel, actor, note)
+       VALUES ($1, $2, $3, 'desk', $4, $5)`,
+      [id, from, toStatus, actor, opts.note ?? null]
+    );
+
+    await client.query("COMMIT");
+    return { ok: true, reservation: { id, status: toStatus, from_status: from } };
+  } catch (err) {
+    await client.query("ROLLBACK");
+    throw err;
+  } finally {
+    client.release();
+  }
+}
+
 /** 予約の状況を取得(不正IDや未存在は null)。 */
 export async function getReservationById(
   id: string

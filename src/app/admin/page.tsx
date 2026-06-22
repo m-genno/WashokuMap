@@ -30,6 +30,15 @@ export default function AdminHome() {
 
         <div className="grid gap-3 sm:grid-cols-2">
           <Link
+            href="/admin/reservations"
+            className="rounded-2xl border border-stone-200 bg-white p-5 shadow-sm hover:border-orange-300 sm:col-span-2"
+          >
+            <h2 className="font-semibold">予約デスク</h2>
+            <p className="mt-1 text-sm text-stone-600">
+              予約リクエストを確認し、確定・お断り・完了などへ更新(履歴記録)。
+            </p>
+          </Link>
+          <Link
             href="/admin/restaurants"
             className="rounded-2xl border border-stone-200 bg-white p-5 shadow-sm hover:border-orange-300 sm:col-span-2"
           >
