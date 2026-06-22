@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { searchRestaurants } from "@/lib/restaurants";
+import { listGenres } from "@/lib/genres";
 import SearchResultsView from "@/components/SearchResultsView";
 import SearchBar from "@/components/SearchBar";
+import SearchFilters from "@/components/SearchFilters";
 
 export const dynamic = "force-dynamic";
 
@@ -21,13 +23,16 @@ export default async function SearchPage({
   const sp = await searchParams;
   const q = sp.q ?? "";
 
-  const results = await searchRestaurants({
-    q,
-    lat: sp.lat ? Number(sp.lat) : undefined,
-    lng: sp.lng ? Number(sp.lng) : undefined,
-    radiusM: sp.radius ? Number(sp.radius) : undefined,
-    genre: sp.genre,
-  });
+  const [results, genres] = await Promise.all([
+    searchRestaurants({
+      q,
+      lat: sp.lat ? Number(sp.lat) : undefined,
+      lng: sp.lng ? Number(sp.lng) : undefined,
+      radiusM: sp.radius ? Number(sp.radius) : undefined,
+      genre: sp.genre,
+    }),
+    listGenres(),
+  ]);
 
   return (
     <div className="flex flex-1 flex-col bg-orange-50 font-sans text-stone-900">
@@ -55,6 +60,16 @@ export default async function SearchPage({
           {q ? <>「{q}」の検索結果: </> : "検索結果: "}
           {results.length} 件
         </p>
+        <SearchFilters
+          genres={genres}
+          current={{
+            q: sp.q,
+            genre: sp.genre,
+            lat: sp.lat,
+            lng: sp.lng,
+            radius: sp.radius,
+          }}
+        />
       </header>
 
       <main className="flex-1">
