@@ -145,6 +145,7 @@ export interface RestaurantReview {
   rating: number;
   body: string | null;
   body_lang: string;
+  body_translations: Record<string, string>;
   created_at: string;
 }
 
@@ -211,7 +212,7 @@ export async function getRestaurantById(
       [id]
     ),
     query<RestaurantReview>(
-      `SELECT id, rating, body, body_lang, created_at FROM review
+      `SELECT id, rating, body, body_lang, body_translations, created_at FROM review
        WHERE restaurant_id = $1 AND status = 'published'
        ORDER BY created_at DESC LIMIT 20`,
       [id]

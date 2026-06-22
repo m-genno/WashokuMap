@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { getAnonymousId } from "@/lib/clientStore";
 
 const LANGS = [
   { code: "en", label: "English" },
@@ -44,6 +45,7 @@ export default function ReservationForm({
 
     const payload = {
       restaurantId,
+      anonymousId: getAnonymousId(),
       desiredAt,
       partySize: Number(fd.get("partySize")),
       guestName: String(fd.get("guestName") || ""),

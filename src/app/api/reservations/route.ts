@@ -6,12 +6,14 @@ import {
   recordNotificationEvent,
 } from "@/lib/notifications";
 import { translateToJa } from "@/lib/translation";
+import { getOrCreateUserByAnonymousId } from "@/lib/users";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 interface ReservationBody {
   restaurantId?: string;
+  anonymousId?: string | null;
   desiredAt?: string;
   desiredAltAt?: string | null;
   partySize?: number;
@@ -69,6 +71,12 @@ export async function POST(req: NextRequest) {
     const requests = body.requests?.trim() || null;
     const lang = guestLang || "en";
 
+    // 匿名IDがあれば app_user に紐付ける(後の口コミ投稿資格の判定に使う)。
+    const anonymousId = body.anonymousId?.trim() || null;
+    const userId = anonymousId
+      ? await getOrCreateUserByAnonymousId(anonymousId)
+      : null;
+
     // 要望を日本語へ翻訳(未接続なら null)。失敗が予約を妨げないよう保護。
     let requestsJa: string | null = null;
     try {
@@ -92,6 +100,7 @@ export async function POST(req: NextRequest) {
       requestsJa,
       dietary: body.dietary ?? null,
       budgetPerPerson,
+      userId,
     });
 
     // 店舗/予約デスクへ通知。失敗しても予約自体は成立させる。

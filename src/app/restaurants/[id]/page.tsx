@@ -7,6 +7,7 @@ import {
 } from "@/lib/restaurants";
 import DetailMap from "@/components/DetailMap";
 import FavoriteButton from "@/components/FavoriteButton";
+import ReviewForm from "@/components/ReviewForm";
 
 export const dynamic = "force-dynamic";
 
@@ -198,6 +199,12 @@ export default async function RestaurantPage({
           <h2 className="mb-2 font-semibold">
             口コミ {r.reviews.length > 0 && `(${r.reviews.length})`}
           </h2>
+
+          {/* 投稿フォーム(予約実績のある匿名ユーザのみ表示) */}
+          <div className="mb-4">
+            <ReviewForm restaurantId={r.id} />
+          </div>
+
           {r.reviews.length === 0 ? (
             <p className="text-sm text-stone-500">
               まだ口コミがありません。予約・来店された方が投稿できます。
@@ -222,6 +229,11 @@ export default async function RestaurantPage({
                   </div>
                   {rv.body && (
                     <p className="mt-1 text-sm text-stone-700">{rv.body}</p>
+                  )}
+                  {rv.body_lang !== "ja" && rv.body_translations?.ja && (
+                    <p className="mt-1 border-l-2 border-orange-100 pl-2 text-sm text-stone-500">
+                      和訳: {rv.body_translations.ja}
+                    </p>
                   )}
                 </li>
               ))}
