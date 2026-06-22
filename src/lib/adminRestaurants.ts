@@ -228,10 +228,15 @@ export interface AdminRestaurantRow {
 export async function listRestaurantsForAdmin(opts: {
   status?: RestaurantStatus | null;
   q?: string | null;
+  importBatchId?: string | null;
   limit?: number;
 }): Promise<AdminRestaurantRow[]> {
   const status = opts.status ?? null;
   const q = opts.q?.trim() || null;
+  const batchId =
+    opts.importBatchId && UUID_RE.test(opts.importBatchId)
+      ? opts.importBatchId
+      : null;
   const limit = Math.min(Math.max(opts.limit ?? 100, 1), 500);
 
   const values: unknown[] = [status];
@@ -244,6 +249,10 @@ export async function listRestaurantsForAdmin(opts: {
     where +=
       ` AND (r.search_vector @@ websearch_to_tsquery('simple', ${ftsPh})` +
       ` OR r.search_text ILIKE ${likePh} ESCAPE '\\')`;
+  }
+  if (batchId) {
+    values.push(batchId);
+    where += ` AND r.import_batch_id = $${values.length}`;
   }
   values.push(limit);
   const limitPh = `$${values.length}`;

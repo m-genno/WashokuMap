@@ -5,6 +5,10 @@ import Link from "next/link";
 import { parseCsv } from "@/lib/csv";
 import { adminHeaders } from "@/lib/adminClient";
 import AdminTokenField from "@/components/AdminTokenField";
+import AdminRestaurantRows, {
+  type RestaurantRow,
+  type RestaurantRowStatus,
+} from "@/components/AdminRestaurantRows";
 
 const COLUMNS = [
   "name",
@@ -33,14 +37,48 @@ export default function ImportPage() {
   const [parseError, setParseError] = useState("");
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<ImportResult | null>(null);
+  // 取り込んだバッチの店舗(取込後にその場で確認・公開・編集できる)。
+  const [batchRows, setBatchRows] = useState<RestaurantRow[]>([]);
+  const [busyId, setBusyId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   function resetFile() {
     setFilename("");
     setRows([]);
     setResult(null);
+    setBatchRows([]);
     setParseError("");
     if (fileInputRef.current) fileInputRef.current.value = "";
+  }
+
+  async function loadBatch(batchId: string) {
+    try {
+      const res = await fetch(
+        `/api/admin/restaurants?status=all&batch=${batchId}`,
+        { headers: adminHeaders() }
+      );
+      const data = await res.json();
+      if (res.ok) setBatchRows(data.restaurants);
+    } catch {
+      // 取込自体は成功しているので、確認一覧の取得失敗は無視(一覧画面で確認可)。
+    }
+  }
+
+  async function changeStatus(id: string, status: RestaurantRowStatus) {
+    if (!result) return;
+    setBusyId(id);
+    try {
+      const res = await fetch(`/api/admin/restaurants/${id}`, {
+        method: "PATCH",
+        headers: adminHeaders(),
+        body: JSON.stringify({ status }),
+      });
+      if (res.ok) await loadBatch(result.batchId);
+    } catch {
+      // noop(再読み込みで整合)
+    } finally {
+      setBusyId(null);
+    }
   }
 
   function onFile(e: React.ChangeEvent<HTMLInputElement>) {
@@ -87,6 +125,7 @@ export default function ImportPage() {
         return;
       }
       setResult(data.result);
+      await loadBatch(data.result.batchId);
     } catch {
       setParseError("通信エラー");
     } finally {
@@ -226,9 +265,41 @@ export default function ImportPage() {
               </div>
             )}
             <p className="mt-2 text-xs text-stone-500">
-              取り込んだ店舗は下書き(非公開)です。内容確認後に公開してください。
+              取り込んだ店舗は下書き(非公開)です。下で内容を確認し、編集・公開できます。
             </p>
           </div>
+        )}
+
+        {/* 取り込んだ店舗の確認・公開・編集(検索/編集と同じ操作) */}
+        {result && (
+          <section className="mt-6">
+            <div className="mb-3 flex flex-wrap items-center gap-3">
+              <h2 className="font-semibold">取り込んだ店舗の確認</h2>
+              <Link
+                href="/admin/restaurants"
+                className="text-sm text-orange-800 hover:text-orange-900"
+              >
+                店舗一覧で検索・編集 →
+              </Link>
+            </div>
+            {batchRows.length === 0 ? (
+              <p className="rounded-2xl border border-dashed border-stone-300 bg-white/60 p-6 text-sm text-stone-500">
+                表示できる店舗がありません(失敗のみ、または一覧の取得に失敗)。
+                <Link
+                  href="/admin/restaurants"
+                  className="ml-1 text-orange-800 hover:text-orange-900"
+                >
+                  店舗一覧へ
+                </Link>
+              </p>
+            ) : (
+              <AdminRestaurantRows
+                rows={batchRows}
+                busyId={busyId}
+                onChangeStatus={changeStatus}
+              />
+            )}
+          </section>
         )}
       </main>
     </div>
