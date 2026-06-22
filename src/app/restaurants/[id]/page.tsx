@@ -8,6 +8,7 @@ import {
 import DetailMap from "@/components/DetailMap";
 import FavoriteButton from "@/components/FavoriteButton";
 import ReviewForm from "@/components/ReviewForm";
+import ReportReviewButton from "@/components/ReportReviewButton";
 
 export const dynamic = "force-dynamic";
 
@@ -235,6 +236,9 @@ export default async function RestaurantPage({
                       和訳: {rv.body_translations.ja}
                     </p>
                   )}
+                  <div className="mt-2 flex justify-end">
+                    <ReportReviewButton reviewId={rv.id} />
+                  </div>
                 </li>
               ))}
             </ul>

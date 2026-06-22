@@ -39,6 +39,15 @@ export default function AdminHome() {
             </p>
           </Link>
           <Link
+            href="/admin/reviews"
+            className="rounded-2xl border border-stone-200 bg-white p-5 shadow-sm hover:border-orange-300 sm:col-span-2"
+          >
+            <h2 className="font-semibold">口コミ モデレーション</h2>
+            <p className="mt-1 text-sm text-stone-600">
+              通報された口コミを確認し、非表示/再公開。評価集計にも自動反映。
+            </p>
+          </Link>
+          <Link
             href="/admin/restaurants"
             className="rounded-2xl border border-stone-200 bg-white p-5 shadow-sm hover:border-orange-300 sm:col-span-2"
           >

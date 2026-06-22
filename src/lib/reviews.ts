@@ -1,5 +1,10 @@
 import { query } from "./db";
 
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+const REPORT_REASON_MAX = 500;
+
 /** 投稿資格とみなす予約ステータス(=来店実績ありとみなす)。 */
 const QUALIFYING_STATUSES = ["confirmed", "completed"] as const;
 
@@ -101,4 +106,124 @@ export async function upsertReview(
     ]
   );
   return rows[0];
+}
+
+// ---- モデレーション(通報・非表示) ----
+
+export type ReportResult =
+  | { ok: true }
+  | { ok: false; reason: "not_found" | "invalid_reason" };
+
+/**
+ * 口コミを通報する(匿名可)。reporterUserId は任意(app_user.id か null)。
+ * 通報自体は公開状態を変えない(運用者が確認して非表示判断)。
+ */
+export async function reportReview(
+  reviewId: string,
+  reason: string,
+  reporterUserId: string | null
+): Promise<ReportResult> {
+  if (!UUID_RE.test(reviewId)) return { ok: false, reason: "not_found" };
+  const trimmed = reason.trim();
+  if (!trimmed || trimmed.length > REPORT_REASON_MAX) {
+    return { ok: false, reason: "invalid_reason" };
+  }
+
+  const exists = await query<{ id: string }>(
+    `SELECT id FROM review WHERE id = $1`,
+    [reviewId]
+  );
+  if (exists.length === 0) return { ok: false, reason: "not_found" };
+
+  await query(
+    `INSERT INTO review_report (review_id, reporter_user_id, reason)
+     VALUES ($1, $2, $3)`,
+    [reviewId, reporterUserId, trimmed]
+  );
+  return { ok: true };
+}
+
+export type ModerationFilter = "reported" | "hidden" | "all";
+
+export interface ModerationReviewRow {
+  id: string;
+  restaurant_id: string;
+  restaurant_name: string;
+  rating: number;
+  body: string | null;
+  body_lang: string;
+  body_translations: Record<string, string>;
+  status: string;
+  created_at: string;
+  report_count: number;
+  reasons: string[];
+}
+
+/**
+ * モデレーション対象の口コミ一覧。
+ * - reported: 公開中で通報のあるもの
+ * - hidden:   非表示中のもの
+ * - all:      通報があるもの、または非表示中のもの
+ */
+export async function listReviewsForModeration(opts: {
+  filter?: ModerationFilter;
+  limit?: number;
+}): Promise<ModerationReviewRow[]> {
+  const filter = opts.filter ?? "reported";
+  const limit = Math.min(Math.max(opts.limit ?? 100, 1), 500);
+
+  let where = "";
+  let having = "HAVING count(rep.id) > 0";
+  if (filter === "reported") {
+    where = "WHERE rv.status = 'published'";
+  } else if (filter === "hidden") {
+    where = "WHERE rv.status = 'hidden'";
+    having = "";
+  } else {
+    having = "HAVING count(rep.id) > 0 OR rv.status = 'hidden'";
+  }
+
+  return query<ModerationReviewRow>(
+    `SELECT
+       rv.id, rv.restaurant_id, r.name AS restaurant_name,
+       rv.rating, rv.body, rv.body_lang, rv.body_translations,
+       rv.status, rv.created_at,
+       count(rep.id)::int AS report_count,
+       COALESCE(
+         (array_agg(rep.reason ORDER BY rep.created_at DESC)
+            FILTER (WHERE rep.id IS NOT NULL))[1:5],
+         '{}'
+       ) AS reasons
+     FROM review rv
+     JOIN restaurant r ON r.id = rv.restaurant_id
+     LEFT JOIN review_report rep ON rep.review_id = rv.id
+     ${where}
+     GROUP BY rv.id, r.name
+     ${having}
+     ORDER BY count(rep.id) DESC, rv.created_at DESC
+     LIMIT ${limit}`
+  );
+}
+
+const MODERATION_STATUSES = ["published", "hidden"] as const;
+export type ModerationStatus = (typeof MODERATION_STATUSES)[number];
+
+export function isModerationStatus(s: string): s is ModerationStatus {
+  return (MODERATION_STATUSES as readonly string[]).includes(s);
+}
+
+/**
+ * 口コミを非表示/公開に切り替える。評価キャッシュは DB トリガが再計算
+ * (非表示にすると rating_avg/count から除外される)。
+ */
+export async function setReviewStatus(
+  reviewId: string,
+  status: ModerationStatus
+): Promise<{ id: string; status: string } | null> {
+  if (!UUID_RE.test(reviewId)) return null;
+  const rows = await query<{ id: string; status: string }>(
+    `UPDATE review SET status = $2 WHERE id = $1 RETURNING id, status`,
+    [reviewId, status]
+  );
+  return rows[0] ?? null;
 }
