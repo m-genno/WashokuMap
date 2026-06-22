@@ -2,14 +2,11 @@
 
 import dynamic from "next/dynamic";
 import type { RestaurantSearchResult } from "@/lib/restaurants";
+import MapLoading from "./MapLoading";
 
 const RestaurantMap = dynamic(() => import("./RestaurantMap"), {
   ssr: false,
-  loading: () => (
-    <div className="flex h-full w-full items-center justify-center bg-orange-100 text-sm text-stone-500">
-      地図を読み込み中…
-    </div>
-  ),
+  loading: () => <MapLoading />,
 });
 
 /** 1店舗だけを表示する地図(詳細ページ用)。RestaurantMap を流用。 */

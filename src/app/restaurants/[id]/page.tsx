@@ -119,6 +119,7 @@ export default async function RestaurantPage({
                 </span>
               )}
               <FavoriteButton
+                locale={locale}
                 item={{
                   id: r.id,
                   name: r.name,

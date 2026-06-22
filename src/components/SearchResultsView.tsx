@@ -5,16 +5,13 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import type { RestaurantSearchResult } from "@/lib/restaurants";
 import FavoriteButton from "./FavoriteButton";
+import MapLoading from "./MapLoading";
 import { translator, pickTranslation, type Locale } from "@/lib/i18n";
 
 // Leaflet は window 依存のためクライアントのみで読み込む。
 const RestaurantMap = dynamic(() => import("./RestaurantMap"), {
   ssr: false,
-  loading: () => (
-    <div className="flex h-full w-full items-center justify-center bg-orange-100 text-sm text-stone-500">
-      地図を読み込み中…
-    </div>
-  ),
+  loading: () => <MapLoading />,
 });
 
 export default function SearchResultsView({
@@ -54,6 +51,7 @@ export default function SearchResultsView({
           results={results}
           selectedId={selectedId}
           onSelect={setSelectedId}
+          locale={locale}
         />
       </div>
 
@@ -111,6 +109,7 @@ export default function SearchResultsView({
                   {t("results.detail")}
                 </Link>
                 <FavoriteButton
+                  locale={locale}
                   item={{
                     id: r.id,
                     name: r.name,

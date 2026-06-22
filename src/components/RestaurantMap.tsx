@@ -5,6 +5,7 @@ import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import type { RestaurantSearchResult } from "@/lib/restaurants";
+import { pickTranslation, type Locale } from "@/lib/i18n";
 
 type Located = RestaurantSearchResult & { lat: number; lng: number };
 
@@ -55,10 +56,12 @@ export default function RestaurantMap({
   results,
   selectedId,
   onSelect,
+  locale = "ja",
 }: {
   results: RestaurantSearchResult[];
   selectedId: string | null;
   onSelect: (id: string) => void;
+  locale?: Locale;
 }) {
   const located = useMemo(
     () =>
@@ -95,7 +98,9 @@ export default function RestaurantMap({
           eventHandlers={{ click: () => onSelect(r.id) }}
         >
           <Popup>
-            <span className="font-semibold">{r.name}</span>
+            <span className="font-semibold">
+              {pickTranslation(r.name_translations, locale, r.name)}
+            </span>
           </Popup>
         </Marker>
       ))}

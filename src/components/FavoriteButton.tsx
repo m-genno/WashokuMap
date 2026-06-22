@@ -1,24 +1,29 @@
 "use client";
 
 import { useFavorites, type FavoriteInput } from "@/lib/clientStore";
+import { translator, type Locale } from "@/lib/i18n";
 
 /** お気に入りトグル(♥)。匿名でも localStorage に保存される。 */
 export default function FavoriteButton({
   item,
   className = "",
+  locale = "ja",
 }: {
   item: FavoriteInput;
   className?: string;
+  locale?: Locale;
 }) {
   const { isFavorite, toggle } = useFavorites();
+  const t = translator(locale);
   const fav = isFavorite(item.id);
+  const label = fav ? t("fav.removeAria") : t("fav.add");
 
   return (
     <button
       type="button"
       aria-pressed={fav}
-      aria-label={fav ? "お気に入りから削除" : "お気に入りに追加"}
-      title={fav ? "お気に入りから削除" : "お気に入りに追加"}
+      aria-label={label}
+      title={label}
       onClick={(e) => {
         e.preventDefault();
         e.stopPropagation();

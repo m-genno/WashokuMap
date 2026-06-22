@@ -23,6 +23,13 @@ export function resolveLocale(value: string | null | undefined): Locale {
   return LOCALES.includes(value as Locale) ? (value as Locale) : DEFAULT_LOCALE;
 }
 
+/** クライアント側で cookie(wm.locale)から locale を読む。サーバでは既定値。 */
+export function localeFromDocumentCookie(): Locale {
+  if (typeof document === "undefined") return DEFAULT_LOCALE;
+  const m = document.cookie.match(/(?:^|;\s*)wm\.locale=([^;]+)/);
+  return resolveLocale(m ? decodeURIComponent(m[1]) : null);
+}
+
 /** html lang 属性用(zh-Hans/zh-Hant はそのまま BCP47 として有効)。 */
 export function htmlLang(locale: Locale): string {
   return locale;
@@ -57,6 +64,9 @@ const ja: Dict = {
   "fav.empty":
     "お気に入りはまだありません。店舗カードや詳細ページの ♡ から追加できます(この端末に保存されます)。",
   "fav.remove": "削除",
+  "fav.add": "お気に入りに追加",
+  "fav.removeAria": "お気に入りから削除",
+  "map.loading": "地図を読み込み中…",
 
   "offline.title": "オフラインです",
   "offline.message":
@@ -180,6 +190,9 @@ const en: Dict = {
   "fav.empty":
     "No favorites yet. Add them with the ♡ on restaurant cards or detail pages (saved on this device).",
   "fav.remove": "Remove",
+  "fav.add": "Add to favorites",
+  "fav.removeAria": "Remove from favorites",
+  "map.loading": "Loading map…",
 
   "offline.title": "You’re offline",
   "offline.message":
@@ -306,6 +319,9 @@ const zhHans: Dict = {
   "fav.empty":
     "还没有收藏。可在店铺卡片或详情页的 ♡ 添加(保存在本设备)。",
   "fav.remove": "删除",
+  "fav.add": "加入收藏",
+  "fav.removeAria": "从收藏中移除",
+  "map.loading": "正在加载地图…",
 
   "offline.title": "已离线",
   "offline.message": "无法连接网络。请在恢复连接后重试。",
@@ -422,6 +438,9 @@ const zhHant: Dict = {
   "fav.empty":
     "尚無收藏。可在店家卡片或詳情頁的 ♡ 加入(儲存在本裝置)。",
   "fav.remove": "刪除",
+  "fav.add": "加入收藏",
+  "fav.removeAria": "從收藏中移除",
+  "map.loading": "正在載入地圖…",
 
   "offline.title": "已離線",
   "offline.message": "無法連線網路。請在恢復連線後重試。",
@@ -538,6 +557,9 @@ const ko: Dict = {
   "fav.empty":
     "아직 즐겨찾기가 없습니다. 가게 카드나 상세 페이지의 ♡ 로 추가할 수 있습니다(이 기기에 저장됩니다).",
   "fav.remove": "삭제",
+  "fav.add": "즐겨찾기에 추가",
+  "fav.removeAria": "즐겨찾기에서 삭제",
+  "map.loading": "지도를 불러오는 중…",
 
   "offline.title": "오프라인입니다",
   "offline.message":
