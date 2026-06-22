@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { isAdminAuthorized } from "@/lib/adminAuth";
 import { setReviewStatus, isModerationStatus } from "@/lib/reviews";
+import { recordAdminAudit, adminActor } from "@/lib/adminAudit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -35,6 +36,14 @@ export async function PATCH(
     if (!updated) {
       return NextResponse.json({ error: "not_found" }, { status: 404 });
     }
+    await recordAdminAudit({
+      action: "review.moderate",
+      targetType: "review",
+      targetId: id,
+      summary: `口コミ: ${body.status === "hidden" ? "非表示" : "公開"}`,
+      detail: { status: body.status },
+      actor: adminActor(req),
+    });
     return NextResponse.json({ review: updated });
   } catch (err) {
     console.error("admin set review status failed:", err);

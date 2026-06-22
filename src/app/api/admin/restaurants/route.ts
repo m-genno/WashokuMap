@@ -8,6 +8,7 @@ import {
   type RestaurantInput,
   type RestaurantStatus,
 } from "@/lib/adminRestaurants";
+import { recordAdminAudit, adminActor } from "@/lib/adminAudit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -81,6 +82,14 @@ export async function POST(req: NextRequest) {
 
   try {
     const saved = await createRestaurant({ ...body, source: "manual" });
+    await recordAdminAudit({
+      action: "restaurant.create",
+      targetType: "restaurant",
+      targetId: saved.id,
+      summary: `登録: ${body.name}`,
+      detail: { status: body.status ?? "draft", geocoded: saved.geocoded },
+      actor: adminActor(req),
+    });
     return NextResponse.json({ restaurant: saved }, { status: 201 });
   } catch (err) {
     console.error("admin create restaurant failed:", err);

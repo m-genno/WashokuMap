@@ -10,6 +10,7 @@ import {
   sendGuestReservationNotification,
   recordGuestNotificationEvent,
 } from "@/lib/guestNotifications";
+import { recordAdminAudit, adminActor } from "@/lib/adminAudit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -56,6 +57,18 @@ export async function PATCH(
         { status: 409 }
       );
     }
+
+    await recordAdminAudit({
+      action: "reservation.status",
+      targetType: "reservation",
+      targetId: result.reservation.id,
+      summary: `予約: ${result.reservation.from_status} → ${result.reservation.status}`,
+      detail: {
+        from: result.reservation.from_status,
+        to: result.reservation.status,
+      },
+      actor: adminActor(req),
+    });
 
     // 可否が決まる遷移(確定/お断り/代替提案/キャンセル)はお客様へ通知する。
     // 通知失敗で状態変更が無効にならないよう保護する。

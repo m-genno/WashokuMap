@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { isAdminAuthorized } from "@/lib/adminAuth";
 import { importRestaurants } from "@/lib/adminRestaurants";
+import { recordAdminAudit, adminActor } from "@/lib/adminAudit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -40,6 +41,19 @@ export async function POST(req: NextRequest) {
       body.rows,
       body.filename ?? "upload.csv"
     );
+    await recordAdminAudit({
+      action: "restaurant.import",
+      targetType: "import",
+      targetId: result.batchId,
+      summary: `CSV取込: ${body.filename ?? "upload.csv"} (+${result.inserted}/更新${result.updated}/失敗${result.failed})`,
+      detail: {
+        total: result.total,
+        inserted: result.inserted,
+        updated: result.updated,
+        failed: result.failed,
+      },
+      actor: adminActor(req),
+    });
     return NextResponse.json({ result }, { status: 200 });
   } catch (err) {
     console.error("admin import failed:", err);

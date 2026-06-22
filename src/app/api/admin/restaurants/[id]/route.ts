@@ -9,6 +9,7 @@ import {
   type RestaurantStatus,
   type RestaurantInput,
 } from "@/lib/adminRestaurants";
+import { recordAdminAudit, adminActor } from "@/lib/adminAudit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -97,6 +98,14 @@ export async function PUT(
         { status: 400 }
       );
     }
+    await recordAdminAudit({
+      action: "restaurant.update",
+      targetType: "restaurant",
+      targetId: id,
+      summary: `編集: ${body.name}`,
+      detail: { status: body.status ?? "draft" },
+      actor: adminActor(req),
+    });
     return NextResponse.json({ restaurant: result.restaurant });
   } catch (err) {
     console.error("admin update restaurant failed:", err);
@@ -135,6 +144,14 @@ export async function PATCH(
     if (!updated) {
       return NextResponse.json({ error: "not_found" }, { status: 404 });
     }
+    await recordAdminAudit({
+      action: "restaurant.status",
+      targetType: "restaurant",
+      targetId: id,
+      summary: `状態変更: ${updated.name} → ${updated.status}`,
+      detail: { status: updated.status },
+      actor: adminActor(req),
+    });
     return NextResponse.json({ restaurant: updated });
   } catch (err) {
     console.error("admin set status failed:", err);
