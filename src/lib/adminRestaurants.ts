@@ -9,6 +9,19 @@ function escapeLike(s: string): string {
   return s.replace(/[\\%_]/g, (c) => `\\${c}`);
 }
 
+export interface PhotoInput {
+  url: string;
+  caption?: string | null;
+  isPrimary?: boolean;
+}
+
+export interface HoursInput {
+  dayOfWeek: number; // 0=日 .. 6=土
+  openTime: string; // "HH:MM"
+  closeTime: string; // "HH:MM"
+  note?: string | null;
+}
+
 export interface RestaurantInput {
   name: string;
   nameEn?: string | null;
@@ -26,6 +39,85 @@ export interface RestaurantInput {
   status?: "draft" | "published";
   source?: "manual" | "csv";
   importBatchId?: string | null;
+  /** 指定すると写真を総入れ替え(未指定=変更しない)。 */
+  photos?: PhotoInput[];
+  /** 指定すると営業時間を総入れ替え(未指定=変更しない)。 */
+  hours?: HoursInput[];
+}
+
+/** SQL 実行関数(pool の query でもトランザクション client.query でも可)。 */
+type Exec = (sql: string, params: unknown[]) => Promise<unknown>;
+
+const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
+
+/**
+ * 写真/営業時間の入力を検証する。問題があればエラーコード文字列、無ければ null。
+ * URL が空の写真行・時刻が空の営業時間行は「未入力」として無視する。
+ */
+export function validateExtras(input: RestaurantInput): string | null {
+  if (input.photos) {
+    if (input.photos.length > 20) return "photos_too_many";
+    for (const p of input.photos) {
+      const url = p.url?.trim();
+      if (url && !/^https?:\/\//i.test(url)) return "invalid_photo_url";
+    }
+  }
+  if (input.hours) {
+    if (input.hours.length > 50) return "hours_too_many";
+    for (const h of input.hours) {
+      if (!h.openTime && !h.closeTime) continue; // 未入力行は無視
+      if (!Number.isInteger(h.dayOfWeek) || h.dayOfWeek < 0 || h.dayOfWeek > 6) {
+        return "invalid_hours_day";
+      }
+      if (!TIME_RE.test(h.openTime) || !TIME_RE.test(h.closeTime)) {
+        return "invalid_hours_time";
+      }
+    }
+  }
+  return null;
+}
+
+/** 写真を総入れ替え。sort_order は配列順、is_primary は1枚に正規化。 */
+async function replacePhotos(
+  exec: Exec,
+  restaurantId: string,
+  photos: PhotoInput[]
+): Promise<void> {
+  await exec(`DELETE FROM restaurant_photo WHERE restaurant_id = $1`, [
+    restaurantId,
+  ]);
+  const valid = photos.filter((p) => p.url && p.url.trim());
+  let primaryIdx = valid.findIndex((p) => p.isPrimary);
+  if (primaryIdx < 0 && valid.length > 0) primaryIdx = 0;
+  for (let i = 0; i < valid.length; i++) {
+    const p = valid[i];
+    await exec(
+      `INSERT INTO restaurant_photo
+         (restaurant_id, url, caption, sort_order, is_primary)
+       VALUES ($1,$2,$3,$4,$5)`,
+      [restaurantId, p.url.trim(), p.caption?.trim() || null, i, i === primaryIdx]
+    );
+  }
+}
+
+/** 営業時間を総入れ替え(時刻が空の行は無視)。 */
+async function replaceHours(
+  exec: Exec,
+  restaurantId: string,
+  hours: HoursInput[]
+): Promise<void> {
+  await exec(`DELETE FROM restaurant_hours WHERE restaurant_id = $1`, [
+    restaurantId,
+  ]);
+  for (const h of hours) {
+    if (!h.openTime || !h.closeTime) continue;
+    await exec(
+      `INSERT INTO restaurant_hours
+         (restaurant_id, day_of_week, open_time, close_time, note)
+       VALUES ($1,$2,$3,$4,$5)`,
+      [restaurantId, h.dayOfWeek, h.openTime, h.closeTime, h.note?.trim() || null]
+    );
+  }
 }
 
 export interface SavedRestaurant {
@@ -101,6 +193,8 @@ export async function createRestaurant(
   );
   const id = rows[0].id;
   await linkGenres(id, input.genres);
+  if (input.photos) await replacePhotos((s, p) => query(s, p), id, input.photos);
+  if (input.hours) await replaceHours((s, p) => query(s, p), id, input.hours);
   return { id, lat: loc.lat, lng: loc.lng, geocoded: loc.geocoded };
 }
 
@@ -205,6 +299,13 @@ export interface AdminRestaurantDetail {
   status: RestaurantStatus;
   source: string;
   genres: string[];
+  photos: { url: string; caption: string | null; is_primary: boolean }[];
+  hours: {
+    day_of_week: number;
+    open_time: string;
+    close_time: string;
+    note: string | null;
+  }[];
 }
 
 /** 編集対象の店舗を取得(状態を問わない)。未存在や不正IDは null。 */
@@ -212,7 +313,7 @@ export async function getRestaurantForAdmin(
   id: string
 ): Promise<AdminRestaurantDetail | null> {
   if (!UUID_RE.test(id)) return null;
-  const rows = await query<AdminRestaurantDetail>(
+  const rows = await query<Omit<AdminRestaurantDetail, "photos" | "hours">>(
     `SELECT
        r.id, r.name,
        r.name_translations->>'en' AS name_en,
@@ -231,7 +332,31 @@ export async function getRestaurantForAdmin(
      GROUP BY r.id`,
     [id]
   );
-  return rows[0] ?? null;
+  if (rows.length === 0) return null;
+
+  const [photos, hours] = await Promise.all([
+    query<{ url: string; caption: string | null; is_primary: boolean }>(
+      `SELECT url, caption, is_primary FROM restaurant_photo
+       WHERE restaurant_id = $1 ORDER BY is_primary DESC, sort_order ASC`,
+      [id]
+    ),
+    query<{
+      day_of_week: number;
+      open_time: string;
+      close_time: string;
+      note: string | null;
+    }>(
+      `SELECT day_of_week,
+              to_char(open_time, 'HH24:MI')  AS open_time,
+              to_char(close_time, 'HH24:MI') AS close_time,
+              note
+       FROM restaurant_hours
+       WHERE restaurant_id = $1 ORDER BY day_of_week, open_time`,
+      [id]
+    ),
+  ]);
+
+  return { ...rows[0], photos, hours };
 }
 
 export type UpdateRestaurantResult =
@@ -315,6 +440,11 @@ export async function updateRestaurant(
         [id, codes]
       );
     }
+
+    // 写真・営業時間は指定があれば総入れ替え(同一トランザクション)。
+    const exec: Exec = (s, p) => client.query(s, p);
+    if (input.photos) await replacePhotos(exec, id, input.photos);
+    if (input.hours) await replaceHours(exec, id, input.hours);
 
     await client.query("COMMIT");
     return {

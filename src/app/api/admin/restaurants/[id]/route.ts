@@ -4,6 +4,7 @@ import {
   setRestaurantStatus,
   getRestaurantForAdmin,
   updateRestaurant,
+  validateExtras,
   RESTAURANT_STATUSES,
   type RestaurantStatus,
   type RestaurantInput,
@@ -79,6 +80,10 @@ export async function PUT(
     !RESTAURANT_STATUSES.includes(body.status as RestaurantStatus)
   ) {
     return NextResponse.json({ error: "invalid_status" }, { status: 400 });
+  }
+  const extrasError = validateExtras(body);
+  if (extrasError) {
+    return NextResponse.json({ error: extrasError }, { status: 400 });
   }
 
   try {

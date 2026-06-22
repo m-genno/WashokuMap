@@ -3,6 +3,7 @@ import { isAdminAuthorized } from "@/lib/adminAuth";
 import {
   createRestaurant,
   listRestaurantsForAdmin,
+  validateExtras,
   RESTAURANT_STATUSES,
   type RestaurantInput,
   type RestaurantStatus,
@@ -72,6 +73,10 @@ export async function POST(req: NextRequest) {
       body.priceRange > 4)
   ) {
     return NextResponse.json({ error: "invalid_price_range" }, { status: 400 });
+  }
+  const extrasError = validateExtras(body);
+  if (extrasError) {
+    return NextResponse.json({ error: extrasError }, { status: 400 });
   }
 
   try {

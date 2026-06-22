@@ -24,7 +24,28 @@ interface Initial {
   price_range: number | null;
   status: string;
   genres: string[];
+  photos?: { url: string; caption: string | null; is_primary: boolean }[];
+  hours?: {
+    day_of_week: number;
+    open_time: string;
+    close_time: string;
+    note: string | null;
+  }[];
 }
+
+interface PhotoRow {
+  url: string;
+  caption: string;
+  isPrimary: boolean;
+}
+interface HoursRow {
+  dayOfWeek: number;
+  openTime: string;
+  closeTime: string;
+  note: string;
+}
+
+const DAY_LABELS = ["日", "月", "火", "水", "木", "金", "土"];
 
 const EMPTY: Initial = {
   name: "",
@@ -40,6 +61,8 @@ const EMPTY: Initial = {
   price_range: null,
   status: "draft",
   genres: [],
+  photos: [],
+  hours: [],
 };
 
 type State =
@@ -59,6 +82,11 @@ const ERROR_LABELS: Record<string, string> = {
   invalid_status: "公開状態が不正です",
   no_location_for_publish:
     "位置情報がないため公開できません。住所を入力するか緯度経度を設定してください。",
+  invalid_photo_url: "写真URLは http(s):// で始まる必要があります",
+  photos_too_many: "写真が多すぎます(最大20枚)",
+  invalid_hours_day: "営業時間の曜日が不正です",
+  invalid_hours_time: "営業時間は HH:MM 形式で入力してください",
+  hours_too_many: "営業時間の行が多すぎます",
   not_found: "店舗が見つかりません",
   unauthorized: "認証が必要です。上のトークンを入力してください。",
   network_error: "通信エラー",
@@ -83,6 +111,8 @@ export default function RestaurantForm({
   const [loadError, setLoadError] = useState("");
   const [state, setState] = useState<State>({ kind: "idle" });
   const [mode, setMode] = useState("request");
+  const [photos, setPhotos] = useState<PhotoRow[]>([]);
+  const [hours, setHours] = useState<HoursRow[]>([]);
 
   // 編集モードは既存データを読み込んでから初期値に反映する。
   useEffect(() => {
@@ -101,6 +131,30 @@ export default function RestaurantForm({
         }
         setInitial(data.restaurant);
         setMode(data.restaurant.reservation_mode ?? "request");
+        setPhotos(
+          (data.restaurant.photos ?? []).map(
+            (p: { url: string; caption: string | null; is_primary: boolean }) => ({
+              url: p.url,
+              caption: p.caption ?? "",
+              isPrimary: p.is_primary,
+            })
+          )
+        );
+        setHours(
+          (data.restaurant.hours ?? []).map(
+            (h: {
+              day_of_week: number;
+              open_time: string;
+              close_time: string;
+              note: string | null;
+            }) => ({
+              dayOfWeek: h.day_of_week,
+              openTime: h.open_time,
+              closeTime: h.close_time,
+              note: h.note ?? "",
+            })
+          )
+        );
       } catch {
         if (!cancelled) setLoadError("通信エラー");
       }
@@ -137,6 +191,21 @@ export default function RestaurantForm({
       priceRange: fd.get("priceRange") ? Number(fd.get("priceRange")) : null,
       status: String(fd.get("status") || "draft"),
       genres: fd.getAll("genres").map(String),
+      photos: photos
+        .filter((p) => p.url.trim())
+        .map((p) => ({
+          url: p.url.trim(),
+          caption: p.caption.trim() || null,
+          isPrimary: p.isPrimary,
+        })),
+      hours: hours
+        .filter((h) => h.openTime && h.closeTime)
+        .map((h) => ({
+          dayOfWeek: h.dayOfWeek,
+          openTime: h.openTime,
+          closeTime: h.closeTime,
+          note: h.note.trim() || null,
+        })),
     };
 
     try {
@@ -212,6 +281,35 @@ export default function RestaurantForm({
   }
 
   const submitting = state.kind === "submitting";
+  const cell =
+    "rounded-lg border border-stone-300 bg-white px-2 py-1.5 text-sm outline-none focus:border-orange-400";
+
+  // 写真の操作
+  const addPhoto = () =>
+    setPhotos((ps) => [
+      ...ps,
+      { url: "", caption: "", isPrimary: ps.length === 0 },
+    ]);
+  const removePhoto = (i: number) =>
+    setPhotos((ps) => ps.filter((_, j) => j !== i));
+  const setPhotoField = (i: number, field: "url" | "caption", val: string) =>
+    setPhotos((ps) => ps.map((p, j) => (j === i ? { ...p, [field]: val } : p)));
+  const setPrimary = (i: number) =>
+    setPhotos((ps) => ps.map((p, j) => ({ ...p, isPrimary: j === i })));
+
+  // 営業時間の操作
+  const addHours = () =>
+    setHours((hs) => [
+      ...hs,
+      { dayOfWeek: 1, openTime: "", closeTime: "", note: "" },
+    ]);
+  const removeHours = (i: number) =>
+    setHours((hs) => hs.filter((_, j) => j !== i));
+  const setHoursField = (
+    i: number,
+    field: keyof HoursRow,
+    val: string | number
+  ) => setHours((hs) => hs.map((h, j) => (j === i ? { ...h, [field]: val } : h)));
 
   return (
     <form onSubmit={onSubmit} className="flex flex-col gap-4">
@@ -354,6 +452,129 @@ export default function RestaurantForm({
           className={input}
         />
       </label>
+
+      {/* 写真 */}
+      <fieldset className="rounded-lg border border-stone-200 p-3">
+        <legend className="px-1 text-sm font-medium text-stone-700">写真</legend>
+        {photos.length === 0 ? (
+          <p className="text-xs text-stone-400">写真は未登録です。</p>
+        ) : (
+          <div className="flex flex-col gap-2">
+            {photos.map((p, i) => (
+              <div key={i} className="flex flex-wrap items-center gap-2">
+                {p.url.trim() && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={p.url}
+                    alt=""
+                    className="h-10 w-10 shrink-0 rounded object-cover"
+                  />
+                )}
+                <input
+                  value={p.url}
+                  onChange={(e) => setPhotoField(i, "url", e.target.value)}
+                  placeholder="https://...(画像URL)"
+                  className={`${cell} min-w-[12rem] flex-1`}
+                />
+                <input
+                  value={p.caption}
+                  onChange={(e) => setPhotoField(i, "caption", e.target.value)}
+                  placeholder="キャプション"
+                  className={`${cell} min-w-[8rem] flex-1`}
+                />
+                <label className="flex items-center gap-1 text-xs text-stone-600">
+                  <input
+                    type="radio"
+                    name="primaryPhoto"
+                    checked={p.isPrimary}
+                    onChange={() => setPrimary(i)}
+                  />{" "}
+                  メイン
+                </label>
+                <button
+                  type="button"
+                  onClick={() => removePhoto(i)}
+                  className="text-xs text-red-600 hover:underline"
+                >
+                  削除
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+        <button
+          type="button"
+          onClick={addPhoto}
+          className="mt-2 text-sm font-medium text-orange-800 hover:text-orange-900"
+        >
+          + 写真を追加
+        </button>
+      </fieldset>
+
+      {/* 営業時間 */}
+      <fieldset className="rounded-lg border border-stone-200 p-3">
+        <legend className="px-1 text-sm font-medium text-stone-700">
+          営業時間
+        </legend>
+        {hours.length === 0 ? (
+          <p className="text-xs text-stone-400">
+            営業時間は未登録です(昼/夜で行を分けられます)。
+          </p>
+        ) : (
+          <div className="flex flex-col gap-2">
+            {hours.map((h, i) => (
+              <div key={i} className="flex flex-wrap items-center gap-2">
+                <select
+                  value={h.dayOfWeek}
+                  onChange={(e) =>
+                    setHoursField(i, "dayOfWeek", Number(e.target.value))
+                  }
+                  className={cell}
+                >
+                  {DAY_LABELS.map((d, di) => (
+                    <option key={di} value={di}>
+                      {d}
+                    </option>
+                  ))}
+                </select>
+                <input
+                  type="time"
+                  value={h.openTime}
+                  onChange={(e) => setHoursField(i, "openTime", e.target.value)}
+                  className={cell}
+                />
+                <span className="text-stone-400">–</span>
+                <input
+                  type="time"
+                  value={h.closeTime}
+                  onChange={(e) => setHoursField(i, "closeTime", e.target.value)}
+                  className={cell}
+                />
+                <input
+                  value={h.note}
+                  onChange={(e) => setHoursField(i, "note", e.target.value)}
+                  placeholder="備考(L.O. 等)"
+                  className={`${cell} min-w-[6rem] flex-1`}
+                />
+                <button
+                  type="button"
+                  onClick={() => removeHours(i)}
+                  className="text-xs text-red-600 hover:underline"
+                >
+                  削除
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+        <button
+          type="button"
+          onClick={addHours}
+          className="mt-2 text-sm font-medium text-orange-800 hover:text-orange-900"
+        >
+          + 営業時間を追加
+        </button>
+      </fieldset>
 
       <label>
         <span className={label}>公開状態</span>
