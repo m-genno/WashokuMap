@@ -41,6 +41,8 @@ const STATUS_LABEL: Record<Status, string> = {
 
 export default function AdminRestaurantList() {
   const [filter, setFilter] = useState("draft");
+  const [q, setQ] = useState(""); // 入力中の語句
+  const [appliedQ, setAppliedQ] = useState(""); // 検索実行された語句
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -55,9 +57,10 @@ export default function AdminRestaurantList() {
       setLoading(true);
       setError("");
       try {
-        const res = await fetch(`/api/admin/restaurants?status=${filter}`, {
-          headers: adminHeaders(),
-        });
+        const res = await fetch(
+          `/api/admin/restaurants?status=${filter}&q=${encodeURIComponent(appliedQ)}`,
+          { headers: adminHeaders() }
+        );
         if (cancelled) return;
         if (res.status === 401) {
           setError("認証が必要です。上のトークンを入力してください。");
@@ -85,7 +88,7 @@ export default function AdminRestaurantList() {
     return () => {
       cancelled = true;
     };
-  }, [filter, reloadKey]);
+  }, [filter, appliedQ, reloadKey]);
 
   async function changeStatus(id: string, status: Status) {
     setBusyId(id);
@@ -112,6 +115,47 @@ export default function AdminRestaurantList() {
 
   return (
     <div>
+      {/* 語句検索(店名・住所・多言語名・紹介文) */}
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          setAppliedQ(q.trim());
+        }}
+        className="mb-3 flex gap-2"
+      >
+        <input
+          type="search"
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          placeholder="店名・住所・英名などで検索"
+          className="flex-1 rounded-full border border-stone-300 bg-white px-4 py-1.5 text-sm outline-none focus:border-orange-400"
+        />
+        <button
+          type="submit"
+          className="rounded-full bg-orange-800 px-4 py-1.5 text-sm font-medium text-orange-50 hover:bg-orange-900"
+        >
+          検索
+        </button>
+        {appliedQ && (
+          <button
+            type="button"
+            onClick={() => {
+              setQ("");
+              setAppliedQ("");
+            }}
+            className="rounded-full border border-stone-300 bg-white px-3 py-1.5 text-sm text-stone-600 hover:border-orange-400"
+          >
+            クリア
+          </button>
+        )}
+      </form>
+
+      {appliedQ && (
+        <p className="mb-3 text-xs text-stone-500">
+          「{appliedQ}」で絞り込み中
+        </p>
+      )}
+
       {/* ステータスタブ */}
       <div className="mb-4 flex flex-wrap gap-2">
         {FILTERS.map((f) => (
@@ -190,6 +234,12 @@ export default function AdminRestaurantList() {
               </div>
 
               <div className="mt-3 flex flex-wrap items-center gap-2">
+                <Link
+                  href={`/admin/restaurants/${r.id}/edit`}
+                  className="rounded-full border border-orange-300 px-3 py-1.5 text-xs font-medium text-orange-800 hover:bg-orange-50"
+                >
+                  編集
+                </Link>
                 {r.status === "published" ? (
                   <Link
                     href={`/restaurants/${r.id}`}

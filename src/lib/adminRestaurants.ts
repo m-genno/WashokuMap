@@ -1,8 +1,13 @@
-import { query } from "./db";
+import { pool, query } from "./db";
 import { geocodeAddress } from "./geocode";
 
 const RESERVATION_MODES = ["request", "external", "phone_only"] as const;
 type ReservationMode = (typeof RESERVATION_MODES)[number];
+
+/** ILIKE のワイルドカード(% _ \)をエスケープする。ESCAPE '\' と併用。 */
+function escapeLike(s: string): string {
+  return s.replace(/[\\%_]/g, (c) => `\\${c}`);
+}
 
 export interface RestaurantInput {
   name: string;
@@ -122,14 +127,33 @@ export interface AdminRestaurantRow {
 
 /**
  * 管理用の店舗一覧。status を指定すると絞り込み(未指定=すべて)。
+ * q を指定すると公開検索と同じ全文検索+トライグラム部分一致で絞り込む
+ * (店名・住所・多言語名・紹介文。日本語の途中文字でもヒット)。
  * 公開判定や口コミと違い status フィルタを掛けないので下書きも見える。
  */
 export async function listRestaurantsForAdmin(opts: {
   status?: RestaurantStatus | null;
+  q?: string | null;
   limit?: number;
 }): Promise<AdminRestaurantRow[]> {
   const status = opts.status ?? null;
+  const q = opts.q?.trim() || null;
   const limit = Math.min(Math.max(opts.limit ?? 100, 1), 500);
+
+  const values: unknown[] = [status];
+  let where = "($1::text IS NULL OR r.status = $1)";
+  if (q) {
+    values.push(q);
+    const ftsPh = `$${values.length}`;
+    values.push(`%${escapeLike(q)}%`);
+    const likePh = `$${values.length}`;
+    where +=
+      ` AND (r.search_vector @@ websearch_to_tsquery('simple', ${ftsPh})` +
+      ` OR r.search_text ILIKE ${likePh} ESCAPE '\\')`;
+  }
+  values.push(limit);
+  const limitPh = `$${values.length}`;
+
   return query<AdminRestaurantRow>(
     `SELECT
        r.id, r.name, r.name_translations, r.address, r.phone,
@@ -142,11 +166,11 @@ export async function listRestaurantsForAdmin(opts: {
      FROM restaurant r
      LEFT JOIN restaurant_genre rg ON rg.restaurant_id = r.id
      LEFT JOIN genre g ON g.id = rg.genre_id
-     WHERE ($1::text IS NULL OR r.status = $1)
+     WHERE ${where}
      GROUP BY r.id
      ORDER BY r.created_at DESC
-     LIMIT $2`,
-    [status, limit]
+     LIMIT ${limitPh}`,
+    values
   );
 }
 
@@ -162,6 +186,147 @@ export async function setRestaurantStatus(
     [id, status]
   );
   return rows[0] ?? null;
+}
+
+/** 編集フォーム用の単一店舗(下書き含む全状態・全編集項目)。 */
+export interface AdminRestaurantDetail {
+  id: string;
+  name: string;
+  name_en: string | null;
+  description: string | null;
+  address: string | null;
+  lat: number | null;
+  lng: number | null;
+  phone: string | null;
+  website_url: string | null;
+  reservation_mode: ReservationMode;
+  reservation_url: string | null;
+  price_range: number | null;
+  status: RestaurantStatus;
+  source: string;
+  genres: string[];
+}
+
+/** 編集対象の店舗を取得(状態を問わない)。未存在や不正IDは null。 */
+export async function getRestaurantForAdmin(
+  id: string
+): Promise<AdminRestaurantDetail | null> {
+  if (!UUID_RE.test(id)) return null;
+  const rows = await query<AdminRestaurantDetail>(
+    `SELECT
+       r.id, r.name,
+       r.name_translations->>'en' AS name_en,
+       r.description, r.address,
+       ST_Y(r.location::geometry) AS lat,
+       ST_X(r.location::geometry) AS lng,
+       r.phone, r.website_url, r.reservation_mode, r.reservation_url,
+       r.price_range, r.status, r.source,
+       COALESCE(
+         array_agg(g.code) FILTER (WHERE g.code IS NOT NULL), '{}'
+       ) AS genres
+     FROM restaurant r
+     LEFT JOIN restaurant_genre rg ON rg.restaurant_id = r.id
+     LEFT JOIN genre g ON g.id = rg.genre_id
+     WHERE r.id = $1
+     GROUP BY r.id`,
+    [id]
+  );
+  return rows[0] ?? null;
+}
+
+export type UpdateRestaurantResult =
+  | { ok: true; restaurant: SavedRestaurant }
+  | { ok: false; reason: "not_found" | "no_location_for_publish" };
+
+/**
+ * 既存店舗を編集(人手UI)。住所/緯度経度から location を解決し、
+ * 店名英訳(name_translations.en)とジャンルを更新する。
+ * - lat/lng を渡せばその座標を使い、無ければ住所からジオコーディング。
+ *   フォームは現在の座標を初期表示するため、通常は位置情報を保持する。
+ * - listing_type と source は維持(本フォームの編集対象外)。
+ * - status='published' にするには location 必須。
+ * - 名前の他言語訳(ja/zh/ko等)は維持し en だけ差し替え(空なら en を削除)。
+ */
+export async function updateRestaurant(
+  id: string,
+  input: RestaurantInput
+): Promise<UpdateRestaurantResult> {
+  if (!UUID_RE.test(id)) return { ok: false, reason: "not_found" };
+
+  const exists = await query<{ id: string }>(
+    `SELECT id FROM restaurant WHERE id = $1`,
+    [id]
+  );
+  if (!exists[0]) return { ok: false, reason: "not_found" };
+
+  // ジオコーディング(外部呼び出し)はトランザクション外で先に済ませる。
+  const loc = await resolveLocation(input);
+  if ((input.status ?? "draft") === "published" && loc.lat == null) {
+    return { ok: false, reason: "no_location_for_publish" };
+  }
+
+  const nameEn = input.nameEn?.trim() || null;
+
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    await client.query(
+      `UPDATE restaurant SET
+         name = $2,
+         name_translations = CASE
+           WHEN $3::text IS NULL THEN name_translations - 'en'
+           ELSE name_translations || jsonb_build_object('en', $3::text)
+         END,
+         description = $4,
+         address = $5,
+         location = ${locationSql(loc.lat, loc.lng)},
+         phone = $6,
+         website_url = $7,
+         reservation_mode = $8,
+         reservation_url = $9,
+         price_range = $10,
+         status = $11
+       WHERE id = $1`,
+      [
+        id,
+        input.name,
+        nameEn,
+        input.description ?? null,
+        input.address ?? null,
+        input.phone ?? null,
+        input.websiteUrl ?? null,
+        input.reservationMode ?? "request",
+        input.reservationUrl ?? null,
+        input.priceRange ?? null,
+        input.status ?? "draft",
+      ]
+    );
+
+    // ジャンルは差し替え(全削除→再リンク)。
+    await client.query(`DELETE FROM restaurant_genre WHERE restaurant_id = $1`, [
+      id,
+    ]);
+    const codes = input.genres ?? [];
+    if (codes.length > 0) {
+      await client.query(
+        `INSERT INTO restaurant_genre (restaurant_id, genre_id)
+         SELECT $1, g.id FROM genre g WHERE g.code = ANY($2::text[])
+         ON CONFLICT DO NOTHING`,
+        [id, codes]
+      );
+    }
+
+    await client.query("COMMIT");
+    return {
+      ok: true,
+      restaurant: { id, lat: loc.lat, lng: loc.lng, geocoded: loc.geocoded },
+    };
+  } catch (err) {
+    await client.query("ROLLBACK");
+    throw err;
+  } finally {
+    client.release();
+  }
 }
 
 /** 重複判定: 電話番号 → なければ 店名+住所。既存IDを返す。 */

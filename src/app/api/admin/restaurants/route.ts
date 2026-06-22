@@ -14,8 +14,8 @@ export const dynamic = "force-dynamic";
 const MODES = ["request", "external", "phone_only"];
 
 /**
- * GET /api/admin/restaurants?status=draft|published|closed|all
- * 管理用の店舗一覧(下書き含む)。status 省略時は draft。
+ * GET /api/admin/restaurants?status=draft|published|closed|all&q=...
+ * 管理用の店舗一覧(下書き含む)。status 省略時は draft、q で語句検索。
  */
 export async function GET(req: NextRequest) {
   if (!isAdminAuthorized(req)) {
@@ -32,8 +32,10 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "invalid_status" }, { status: 400 });
   }
 
+  const q = req.nextUrl.searchParams.get("q");
+
   try {
-    const restaurants = await listRestaurantsForAdmin({ status });
+    const restaurants = await listRestaurantsForAdmin({ status, q });
     return NextResponse.json({ count: restaurants.length, restaurants });
   } catch (err) {
     console.error("admin list restaurants failed:", err);
