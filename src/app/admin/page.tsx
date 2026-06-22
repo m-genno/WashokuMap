@@ -30,6 +30,15 @@ export default function AdminHome() {
 
         <div className="grid gap-3 sm:grid-cols-2">
           <Link
+            href="/admin/restaurants"
+            className="rounded-2xl border border-stone-200 bg-white p-5 shadow-sm hover:border-orange-300 sm:col-span-2"
+          >
+            <h2 className="font-semibold">店舗一覧・公開</h2>
+            <p className="mt-1 text-sm text-stone-600">
+              投入済みの下書きを確認して公開・休止。位置情報の有無も一覧で確認。
+            </p>
+          </Link>
+          <Link
             href="/admin/restaurants/new"
             className="rounded-2xl border border-stone-200 bg-white p-5 shadow-sm hover:border-orange-300"
           >

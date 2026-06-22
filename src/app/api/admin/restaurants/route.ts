@@ -1,11 +1,45 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { isAdminAuthorized } from "@/lib/adminAuth";
-import { createRestaurant, type RestaurantInput } from "@/lib/adminRestaurants";
+import {
+  createRestaurant,
+  listRestaurantsForAdmin,
+  RESTAURANT_STATUSES,
+  type RestaurantInput,
+  type RestaurantStatus,
+} from "@/lib/adminRestaurants";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const MODES = ["request", "external", "phone_only"];
+
+/**
+ * GET /api/admin/restaurants?status=draft|published|closed|all
+ * 管理用の店舗一覧(下書き含む)。status 省略時は draft。
+ */
+export async function GET(req: NextRequest) {
+  if (!isAdminAuthorized(req)) {
+    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  }
+
+  const raw = req.nextUrl.searchParams.get("status") ?? "draft";
+  let status: RestaurantStatus | null;
+  if (raw === "all") {
+    status = null;
+  } else if (RESTAURANT_STATUSES.includes(raw as RestaurantStatus)) {
+    status = raw as RestaurantStatus;
+  } else {
+    return NextResponse.json({ error: "invalid_status" }, { status: 400 });
+  }
+
+  try {
+    const restaurants = await listRestaurantsForAdmin({ status });
+    return NextResponse.json({ count: restaurants.length, restaurants });
+  } catch (err) {
+    console.error("admin list restaurants failed:", err);
+    return NextResponse.json({ error: "list_failed" }, { status: 500 });
+  }
+}
 
 /** POST /api/admin/restaurants — 人手登録(1店舗) */
 export async function POST(req: NextRequest) {

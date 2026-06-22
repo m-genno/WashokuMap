@@ -99,6 +99,71 @@ export async function createRestaurant(
   return { id, lat: loc.lat, lng: loc.lng, geocoded: loc.geocoded };
 }
 
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+export const RESTAURANT_STATUSES = ["draft", "published", "closed"] as const;
+export type RestaurantStatus = (typeof RESTAURANT_STATUSES)[number];
+
+export interface AdminRestaurantRow {
+  id: string;
+  name: string;
+  name_translations: Record<string, string>;
+  address: string | null;
+  phone: string | null;
+  reservation_mode: ReservationMode;
+  price_range: number | null;
+  status: RestaurantStatus;
+  source: string;
+  has_location: boolean;
+  genres: string[];
+  created_at: string;
+}
+
+/**
+ * 管理用の店舗一覧。status を指定すると絞り込み(未指定=すべて)。
+ * 公開判定や口コミと違い status フィルタを掛けないので下書きも見える。
+ */
+export async function listRestaurantsForAdmin(opts: {
+  status?: RestaurantStatus | null;
+  limit?: number;
+}): Promise<AdminRestaurantRow[]> {
+  const status = opts.status ?? null;
+  const limit = Math.min(Math.max(opts.limit ?? 100, 1), 500);
+  return query<AdminRestaurantRow>(
+    `SELECT
+       r.id, r.name, r.name_translations, r.address, r.phone,
+       r.reservation_mode, r.price_range, r.status, r.source,
+       (r.location IS NOT NULL) AS has_location,
+       r.created_at,
+       COALESCE(
+         array_agg(g.code) FILTER (WHERE g.code IS NOT NULL), '{}'
+       ) AS genres
+     FROM restaurant r
+     LEFT JOIN restaurant_genre rg ON rg.restaurant_id = r.id
+     LEFT JOIN genre g ON g.id = rg.genre_id
+     WHERE ($1::text IS NULL OR r.status = $1)
+     GROUP BY r.id
+     ORDER BY r.created_at DESC
+     LIMIT $2`,
+    [status, limit]
+  );
+}
+
+/** 店舗のステータスを変更(公開/下書きに戻す/休止)。未存在や不正IDは null。 */
+export async function setRestaurantStatus(
+  id: string,
+  status: RestaurantStatus
+): Promise<{ id: string; name: string; status: RestaurantStatus } | null> {
+  if (!UUID_RE.test(id)) return null;
+  const rows = await query<{ id: string; name: string; status: RestaurantStatus }>(
+    `UPDATE restaurant SET status = $2 WHERE id = $1
+     RETURNING id, name, status`,
+    [id, status]
+  );
+  return rows[0] ?? null;
+}
+
 /** 重複判定: 電話番号 → なければ 店名+住所。既存IDを返す。 */
 async function findExistingId(
   phone: string | null,
