@@ -22,3 +22,9 @@ export function adminHeaders(): Record<string, string> {
     ...(token ? { "x-admin-token": token } : {}),
   };
 }
+
+/** multipart 等で Content-Type を自前指定したいとき用(トークンのみ)。 */
+export function adminTokenHeader(): Record<string, string> {
+  const token = getAdminToken();
+  return token ? { "x-admin-token": token } : {};
+}

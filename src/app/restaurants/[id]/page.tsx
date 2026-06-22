@@ -89,17 +89,25 @@ export default async function RestaurantPage({
       </header>
 
       <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-6 sm:px-6">
-        {/* 写真 */}
+        {/* 写真(サムネ表示。クリックで元画像) */}
         {r.photos.length > 0 ? (
           <div className="mb-5 grid grid-cols-2 gap-2 sm:grid-cols-3">
             {r.photos.map((p, i) => (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
+              <a
                 key={i}
-                src={p.url}
-                alt={p.caption ?? r.name}
-                className="aspect-[4/3] w-full rounded-xl object-cover"
-              />
+                href={p.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block"
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={p.thumb_url ?? p.url}
+                  alt={p.caption ?? r.name}
+                  loading="lazy"
+                  className="aspect-[4/3] w-full rounded-xl object-cover hover:opacity-90"
+                />
+              </a>
             ))}
           </div>
         ) : (

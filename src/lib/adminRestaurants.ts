@@ -1,5 +1,6 @@
 import { pool, query } from "./db";
 import { geocodeAddress } from "./geocode";
+import { isUploadUrl } from "./uploads";
 
 const RESERVATION_MODES = ["request", "external", "phone_only"] as const;
 type ReservationMode = (typeof RESERVATION_MODES)[number];
@@ -11,6 +12,7 @@ function escapeLike(s: string): string {
 
 export interface PhotoInput {
   url: string;
+  thumbUrl?: string | null;
   caption?: string | null;
   isPrimary?: boolean;
 }
@@ -59,7 +61,13 @@ export function validateExtras(input: RestaurantInput): string | null {
     if (input.photos.length > 20) return "photos_too_many";
     for (const p of input.photos) {
       const url = p.url?.trim();
-      if (url && !/^https?:\/\//i.test(url)) return "invalid_photo_url";
+      // 自前アップロード(/api/uploads/...)か外部 http(s) URL を許可。
+      if (url && !isUploadUrl(url) && !/^https?:\/\//i.test(url)) {
+        return "invalid_photo_url";
+      }
+      // サムネは自前アップロードのみ(外部サムネは無い)。
+      const thumb = p.thumbUrl?.trim();
+      if (thumb && !isUploadUrl(thumb)) return "invalid_photo_url";
     }
   }
   if (input.hours) {
@@ -93,9 +101,16 @@ async function replacePhotos(
     const p = valid[i];
     await exec(
       `INSERT INTO restaurant_photo
-         (restaurant_id, url, caption, sort_order, is_primary)
-       VALUES ($1,$2,$3,$4,$5)`,
-      [restaurantId, p.url.trim(), p.caption?.trim() || null, i, i === primaryIdx]
+         (restaurant_id, url, thumb_url, caption, sort_order, is_primary)
+       VALUES ($1,$2,$3,$4,$5,$6)`,
+      [
+        restaurantId,
+        p.url.trim(),
+        p.thumbUrl?.trim() || null,
+        p.caption?.trim() || null,
+        i,
+        i === primaryIdx,
+      ]
     );
   }
 }
@@ -308,7 +323,12 @@ export interface AdminRestaurantDetail {
   status: RestaurantStatus;
   source: string;
   genres: string[];
-  photos: { url: string; caption: string | null; is_primary: boolean }[];
+  photos: {
+    url: string;
+    thumb_url: string | null;
+    caption: string | null;
+    is_primary: boolean;
+  }[];
   hours: {
     day_of_week: number;
     open_time: string;
@@ -344,8 +364,13 @@ export async function getRestaurantForAdmin(
   if (rows.length === 0) return null;
 
   const [photos, hours] = await Promise.all([
-    query<{ url: string; caption: string | null; is_primary: boolean }>(
-      `SELECT url, caption, is_primary FROM restaurant_photo
+    query<{
+      url: string;
+      thumb_url: string | null;
+      caption: string | null;
+      is_primary: boolean;
+    }>(
+      `SELECT url, thumb_url, caption, is_primary FROM restaurant_photo
        WHERE restaurant_id = $1 ORDER BY is_primary DESC, sort_order ASC`,
       [id]
     ),

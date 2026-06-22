@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { adminHeaders } from "@/lib/adminClient";
+import { adminHeaders, adminTokenHeader } from "@/lib/adminClient";
 
 export interface GenreOption {
   code: string;
@@ -24,7 +24,12 @@ interface Initial {
   price_range: number | null;
   status: string;
   genres: string[];
-  photos?: { url: string; caption: string | null; is_primary: boolean }[];
+  photos?: {
+    url: string;
+    thumb_url: string | null;
+    caption: string | null;
+    is_primary: boolean;
+  }[];
   hours?: {
     day_of_week: number;
     open_time: string;
@@ -35,6 +40,7 @@ interface Initial {
 
 interface PhotoRow {
   url: string;
+  thumbUrl: string | null;
   caption: string;
   isPrimary: boolean;
 }
@@ -113,6 +119,7 @@ export default function RestaurantForm({
   const [mode, setMode] = useState("request");
   const [photos, setPhotos] = useState<PhotoRow[]>([]);
   const [hours, setHours] = useState<HoursRow[]>([]);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
 
   // 編集モードは既存データを読み込んでから初期値に反映する。
   useEffect(() => {
@@ -133,8 +140,14 @@ export default function RestaurantForm({
         setMode(data.restaurant.reservation_mode ?? "request");
         setPhotos(
           (data.restaurant.photos ?? []).map(
-            (p: { url: string; caption: string | null; is_primary: boolean }) => ({
+            (p: {
+              url: string;
+              thumb_url: string | null;
+              caption: string | null;
+              is_primary: boolean;
+            }) => ({
               url: p.url,
+              thumbUrl: p.thumb_url ?? null,
               caption: p.caption ?? "",
               isPrimary: p.is_primary,
             })
@@ -195,6 +208,7 @@ export default function RestaurantForm({
         .filter((p) => p.url.trim())
         .map((p) => ({
           url: p.url.trim(),
+          thumbUrl: p.thumbUrl,
           caption: p.caption.trim() || null,
           isPrimary: p.isPrimary,
         })),
@@ -288,14 +302,64 @@ export default function RestaurantForm({
   const addPhoto = () =>
     setPhotos((ps) => [
       ...ps,
-      { url: "", caption: "", isPrimary: ps.length === 0 },
+      { url: "", thumbUrl: null, caption: "", isPrimary: ps.length === 0 },
     ]);
   const removePhoto = (i: number) =>
     setPhotos((ps) => ps.filter((_, j) => j !== i));
   const setPhotoField = (i: number, field: "url" | "caption", val: string) =>
-    setPhotos((ps) => ps.map((p, j) => (j === i ? { ...p, [field]: val } : p)));
+    setPhotos((ps) =>
+      ps.map((p, j) =>
+        j === i
+          ? // URL を手入力したら(自前アップロードでない)サムネは無効化。
+            field === "url"
+            ? { ...p, url: val, thumbUrl: null }
+            : { ...p, [field]: val }
+          : p
+      )
+    );
   const setPrimary = (i: number) =>
     setPhotos((ps) => ps.map((p, j) => ({ ...p, isPrimary: j === i })));
+
+  // 画像アップロード(sharp で軽量化+サムネ生成)。管理トークンで認可。
+  const onUploadPhotos = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files ?? []);
+    e.target.value = "";
+    if (files.length === 0) return;
+    setUploadingPhoto(true);
+    try {
+      for (const file of files) {
+        const fd = new FormData();
+        fd.append("file", file);
+        const res = await fetch("/api/uploads", {
+          method: "POST",
+          headers: adminTokenHeader(),
+          body: fd,
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          setState({
+            kind: "error",
+            message:
+              data.error === "too_large"
+                ? "画像が大きすぎます(最大5MB)"
+                : "画像のアップロードに失敗しました",
+          });
+          continue;
+        }
+        setPhotos((ps) => [
+          ...ps,
+          {
+            url: data.url,
+            thumbUrl: data.thumbUrl ?? null,
+            caption: "",
+            isPrimary: ps.length === 0,
+          },
+        ]);
+      }
+    } finally {
+      setUploadingPhoto(false);
+    }
+  };
 
   // 営業時間の操作
   const addHours = () =>
@@ -465,7 +529,7 @@ export default function RestaurantForm({
                 {p.url.trim() && (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
-                    src={p.url}
+                    src={p.thumbUrl ?? p.url}
                     alt=""
                     className="h-10 w-10 shrink-0 rounded object-cover"
                   />
@@ -476,6 +540,9 @@ export default function RestaurantForm({
                   placeholder="https://...(画像URL)"
                   className={`${cell} min-w-[12rem] flex-1`}
                 />
+                {p.thumbUrl && (
+                  <span className="text-xs text-emerald-700">軽量化済</span>
+                )}
                 <input
                   value={p.caption}
                   onChange={(e) => setPhotoField(i, "caption", e.target.value)}
@@ -502,13 +569,29 @@ export default function RestaurantForm({
             ))}
           </div>
         )}
-        <button
-          type="button"
-          onClick={addPhoto}
-          className="mt-2 text-sm font-medium text-orange-800 hover:text-orange-900"
-        >
-          + 写真を追加
-        </button>
+        <div className="mt-2 flex flex-wrap items-center gap-4">
+          <label className="cursor-pointer text-sm font-medium text-orange-800 hover:text-orange-900">
+            {uploadingPhoto ? "アップロード中…" : "画像をアップロード"}
+            <input
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              multiple
+              onChange={onUploadPhotos}
+              disabled={uploadingPhoto}
+              className="hidden"
+            />
+          </label>
+          <button
+            type="button"
+            onClick={addPhoto}
+            className="text-sm font-medium text-stone-600 hover:text-stone-900"
+          >
+            + URLで追加
+          </button>
+        </div>
+        <p className="mt-1 text-xs text-stone-400">
+          アップロードした画像は自動で軽量化され、サムネイルを生成します。
+        </p>
       </fieldset>
 
       {/* 営業時間 */}

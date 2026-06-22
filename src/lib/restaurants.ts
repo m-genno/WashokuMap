@@ -107,7 +107,7 @@ export async function searchRestaurants(
       r.price_range,
       r.reservation_mode,
       (
-        SELECT rp.url FROM restaurant_photo rp
+        SELECT COALESCE(rp.thumb_url, rp.url) FROM restaurant_photo rp
         WHERE rp.restaurant_id = r.id
         ORDER BY rp.is_primary DESC, rp.sort_order ASC
         LIMIT 1
@@ -132,6 +132,7 @@ export interface RestaurantGenre {
 }
 export interface RestaurantPhoto {
   url: string;
+  thumb_url: string | null;
   caption: string | null;
 }
 export interface RestaurantHours {
@@ -203,7 +204,7 @@ export async function getRestaurantById(
       [id]
     ),
     query<RestaurantPhoto>(
-      `SELECT url, caption FROM restaurant_photo
+      `SELECT url, thumb_url, caption FROM restaurant_photo
        WHERE restaurant_id = $1 ORDER BY is_primary DESC, sort_order ASC`,
       [id]
     ),
