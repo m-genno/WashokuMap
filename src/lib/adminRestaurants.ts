@@ -493,25 +493,92 @@ export async function updateRestaurant(
   }
 }
 
-/** 重複判定: 電話番号 → なければ 店名+住所。既存IDを返す。 */
-async function findExistingId(
+/** 重複判定: 電話番号 → なければ 店名+住所。既存の {id, name} を返す。 */
+async function findExisting(
   phone: string | null,
   name: string,
   address: string | null
-): Promise<string | null> {
+): Promise<{ id: string; name: string } | null> {
   if (phone) {
-    const r = await query<{ id: string }>(
-      `SELECT id FROM restaurant WHERE phone = $1 LIMIT 1`,
+    const r = await query<{ id: string; name: string }>(
+      `SELECT id, name FROM restaurant WHERE phone = $1 LIMIT 1`,
       [phone]
     );
-    if (r[0]) return r[0].id;
+    if (r[0]) return r[0];
   }
-  const r2 = await query<{ id: string }>(
-    `SELECT id FROM restaurant
+  const r2 = await query<{ id: string; name: string }>(
+    `SELECT id, name FROM restaurant
      WHERE name = $1 AND COALESCE(address,'') = COALESCE($2,'') LIMIT 1`,
     [name, address ?? null]
   );
-  return r2[0]?.id ?? null;
+  return r2[0] ?? null;
+}
+
+export type ImportPreviewAction = "new" | "update" | "error";
+
+export interface ImportPreviewRow {
+  row: number; // 1-based(ヘッダ除く)
+  name: string;
+  action: ImportPreviewAction;
+  /** action='error' のときの理由 */
+  error?: string;
+  /** action='update' のとき、更新対象の既存店名 */
+  existingName?: string;
+}
+
+export interface ImportPreview {
+  total: number;
+  newCount: number;
+  updateCount: number;
+  errorCount: number;
+  rows: ImportPreviewRow[];
+}
+
+/**
+ * 取込前のドライラン。各行を検証し、DBの重複判定で「新規/更新/失敗」を返す。
+ * 書き込みもジオコーディングも行わない(読み取りのみで高速)。
+ * 注: 判定はDB照合のみ。同一CSV内の重複は実取込時に2件目が更新になり得る。
+ */
+export async function previewImport(
+  rows: Record<string, string>[]
+): Promise<ImportPreview> {
+  const out: ImportPreviewRow[] = [];
+  let newCount = 0;
+  let updateCount = 0;
+  let errorCount = 0;
+
+  for (let i = 0; i < rows.length; i++) {
+    const parsed = rowToInput(rows[i]);
+    if (typeof parsed === "string") {
+      out.push({
+        row: i + 1,
+        name: (rows[i].name ?? "").trim(),
+        action: "error",
+        error: parsed,
+      });
+      errorCount++;
+      continue;
+    }
+    const existing = await findExisting(
+      parsed.phone ?? null,
+      parsed.name,
+      parsed.address ?? null
+    );
+    if (existing) {
+      out.push({
+        row: i + 1,
+        name: parsed.name,
+        action: "update",
+        existingName: existing.name,
+      });
+      updateCount++;
+    } else {
+      out.push({ row: i + 1, name: parsed.name, action: "new" });
+      newCount++;
+    }
+  }
+
+  return { total: rows.length, newCount, updateCount, errorCount, rows: out };
 }
 
 export interface RowValidationError {
@@ -597,12 +664,13 @@ export async function importRestaurants(
       continue;
     }
     try {
-      const existingId = await findExistingId(
+      const existing = await findExisting(
         parsed.phone ?? null,
         parsed.name,
         parsed.address ?? null
       );
-      if (existingId) {
+      if (existing) {
+        const existingId = existing.id;
         const loc = await resolveLocation(parsed);
         await query(
           `UPDATE restaurant SET

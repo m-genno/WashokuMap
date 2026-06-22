@@ -31,11 +31,40 @@ interface ImportResult {
   errors: { row: number; error: string }[];
 }
 
+type PreviewAction = "new" | "update" | "error";
+interface PreviewRow {
+  row: number;
+  name: string;
+  action: PreviewAction;
+  error?: string;
+  existingName?: string;
+}
+interface ImportPreview {
+  total: number;
+  newCount: number;
+  updateCount: number;
+  errorCount: number;
+  rows: PreviewRow[];
+}
+
+const ACTION_BADGE: Record<PreviewAction, string> = {
+  new: "bg-emerald-100 text-emerald-800",
+  update: "bg-blue-100 text-blue-800",
+  error: "bg-red-100 text-red-700",
+};
+const ACTION_LABEL: Record<PreviewAction, string> = {
+  new: "新規",
+  update: "更新",
+  error: "失敗",
+};
+
 export default function ImportPage() {
   const [filename, setFilename] = useState("");
   const [rows, setRows] = useState<Record<string, string>[]>([]);
   const [parseError, setParseError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [preview, setPreview] = useState<ImportPreview | null>(null);
+  const [previewing, setPreviewing] = useState(false);
   const [result, setResult] = useState<ImportResult | null>(null);
   // 取り込んだバッチの店舗(取込後にその場で確認・公開・編集できる)。
   const [batchRows, setBatchRows] = useState<RestaurantRow[]>([]);
@@ -45,10 +74,38 @@ export default function ImportPage() {
   function resetFile() {
     setFilename("");
     setRows([]);
+    setPreview(null);
     setResult(null);
     setBatchRows([]);
     setParseError("");
     if (fileInputRef.current) fileInputRef.current.value = "";
+  }
+
+  /** 取込前ドライラン(新規/更新/失敗の判定)。 */
+  async function runPreview(rowsToCheck: Record<string, string>[]) {
+    setPreviewing(true);
+    setPreview(null);
+    try {
+      const res = await fetch("/api/admin/restaurants/import/preview", {
+        method: "POST",
+        headers: adminHeaders(),
+        body: JSON.stringify({ rows: rowsToCheck }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setParseError(
+          res.status === 401
+            ? "認証が必要です。上のトークンを入力してください。"
+            : `プレビューに失敗しました: ${data.error ?? "unknown"}`
+        );
+        return;
+      }
+      setPreview(data.preview);
+    } catch {
+      setParseError("通信エラー");
+    } finally {
+      setPreviewing(false);
+    }
   }
 
   async function loadBatch(batchId: string) {
@@ -83,6 +140,7 @@ export default function ImportPage() {
 
   function onFile(e: React.ChangeEvent<HTMLInputElement>) {
     setResult(null);
+    setPreview(null);
     setParseError("");
     const file = e.target.files?.[0];
     if (!file) return;
@@ -102,6 +160,7 @@ export default function ImportPage() {
           return;
         }
         setRows(parsed);
+        runPreview(parsed);
       } catch {
         setParseError("CSVの解析に失敗しました。");
         setRows([]);
@@ -133,7 +192,10 @@ export default function ImportPage() {
     }
   }
 
-  const preview = rows.slice(0, 10);
+  const importable = preview
+    ? preview.newCount + preview.updateCount
+    : rows.length;
+  const previewRowsShown = preview ? preview.rows.slice(0, 100) : [];
 
   return (
     <div className="flex flex-1 flex-col bg-stone-50 font-sans text-stone-900">
@@ -197,51 +259,96 @@ export default function ImportPage() {
           </p>
         )}
 
-        {rows.length > 0 && (
-          <>
+        {/* 取込前の判定プレビュー(新規/更新/失敗) */}
+        {rows.length > 0 && !result && (
+          <div className="mb-4">
             <p className="mb-2 text-sm text-stone-600">
-              {rows.length} 行を読み込みました(先頭{preview.length}件をプレビュー)
+              {rows.length} 行を読み込みました。
+              {previewing && " 判定中…"}
             </p>
-            <div className="mb-3 overflow-x-auto rounded-lg border border-stone-200">
-              <table className="min-w-full text-xs">
-                <thead className="bg-stone-100">
-                  <tr>
-                    {COLUMNS.map((c) => (
-                      <th key={c} className="px-2 py-1 text-left font-medium">
-                        {c}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {preview.map((r, i) => (
-                    <tr key={i} className="border-t border-stone-100">
-                      {COLUMNS.map((c) => (
-                        <td key={c} className="px-2 py-1">
-                          {r[c] ?? ""}
-                        </td>
+
+            {preview && (
+              <>
+                <div className="mb-2 flex flex-wrap gap-2 text-sm">
+                  <span className="rounded-full bg-emerald-100 px-3 py-0.5 font-medium text-emerald-800">
+                    新規 {preview.newCount}
+                  </span>
+                  <span className="rounded-full bg-blue-100 px-3 py-0.5 font-medium text-blue-800">
+                    更新 {preview.updateCount}
+                  </span>
+                  <span className="rounded-full bg-red-100 px-3 py-0.5 font-medium text-red-700">
+                    失敗 {preview.errorCount}
+                  </span>
+                </div>
+
+                <div className="overflow-x-auto rounded-lg border border-stone-200">
+                  <table className="min-w-full text-xs">
+                    <thead className="bg-stone-100">
+                      <tr>
+                        <th className="px-2 py-1 text-left font-medium">行</th>
+                        <th className="px-2 py-1 text-left font-medium">判定</th>
+                        <th className="px-2 py-1 text-left font-medium">店名</th>
+                        <th className="px-2 py-1 text-left font-medium">詳細</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {previewRowsShown.map((r) => (
+                        <tr key={r.row} className="border-t border-stone-100">
+                          <td className="px-2 py-1 text-stone-500">{r.row}</td>
+                          <td className="px-2 py-1">
+                            <span
+                              className={`rounded-full px-2 py-0.5 font-medium ${ACTION_BADGE[r.action]}`}
+                            >
+                              {ACTION_LABEL[r.action]}
+                            </span>
+                          </td>
+                          <td className="px-2 py-1">{r.name || "—"}</td>
+                          <td className="px-2 py-1 text-stone-500">
+                            {r.action === "update"
+                              ? `既存「${r.existingName}」を更新`
+                              : r.action === "error"
+                                ? r.error
+                                : ""}
+                          </td>
+                        </tr>
                       ))}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </>
+                    </tbody>
+                  </table>
+                </div>
+                {preview.rows.length > previewRowsShown.length && (
+                  <p className="mt-1 text-xs text-stone-400">
+                    先頭 {previewRowsShown.length} 件を表示(全 {preview.rows.length} 件)
+                  </p>
+                )}
+              </>
+            )}
+          </div>
         )}
 
-        {/* 投入ボタン(ファイル未選択時は無効) */}
-        <button
-          type="button"
-          onClick={onImport}
-          disabled={busy || rows.length === 0}
-          className="rounded-full bg-orange-800 px-6 py-3 font-medium text-orange-50 hover:bg-orange-900 disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          {busy
-            ? "インポート中…"
-            : rows.length > 0
-              ? `${rows.length} 件をインポート`
-              : "インポート(先にCSVを選択)"}
-        </button>
+        {/* 投入ボタン(ファイル未選択時・取込対象が無いときは無効) */}
+        {!result && (
+          <button
+            type="button"
+            onClick={onImport}
+            disabled={
+              busy ||
+              previewing ||
+              rows.length === 0 ||
+              (preview !== null && importable === 0)
+            }
+            className="rounded-full bg-orange-800 px-6 py-3 font-medium text-orange-50 hover:bg-orange-900 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {busy
+              ? "インポート中…"
+              : previewing
+                ? "判定中…"
+                : rows.length === 0
+                  ? "インポート(先にCSVを選択)"
+                  : preview
+                    ? `${importable} 件をインポート(新規${preview.newCount}/更新${preview.updateCount})`
+                    : `${rows.length} 件をインポート`}
+          </button>
+        )}
 
         {result && (
           <div className="mt-5 rounded-2xl border border-stone-200 bg-white p-4 text-sm">
