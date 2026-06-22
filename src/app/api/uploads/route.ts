@@ -37,10 +37,13 @@ export async function POST(req: NextRequest) {
   }
 
   const buffer = Buffer.from(await file.arrayBuffer());
-  const result = await saveImage(buffer, file.type);
+  const result = await saveImage(buffer);
   if (!result.ok) {
     const status = result.reason === "too_large" ? 413 : 400;
     return NextResponse.json({ error: result.reason }, { status });
   }
-  return NextResponse.json({ url: result.url }, { status: 201 });
+  return NextResponse.json(
+    { url: result.url, thumbUrl: result.thumbUrl },
+    { status: 201 }
+  );
 }

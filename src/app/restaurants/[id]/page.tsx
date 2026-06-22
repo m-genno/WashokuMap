@@ -255,16 +255,16 @@ export default async function RestaurantPage({
                     )}
                   {rv.photos.length > 0 && (
                     <div className="mt-2 flex flex-wrap gap-2">
-                      {rv.photos.map((url) => (
+                      {rv.photos.map((ph) => (
                         <a
-                          key={url}
-                          href={url}
+                          key={ph.url}
+                          href={ph.url}
                           target="_blank"
                           rel="noopener noreferrer"
                         >
                           {/* eslint-disable-next-line @next/next/no-img-element */}
                           <img
-                            src={url}
+                            src={ph.thumbUrl ?? ph.url}
                             alt=""
                             loading="lazy"
                             className="h-20 w-20 rounded-lg object-cover hover:opacity-90"

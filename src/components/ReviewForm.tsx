@@ -15,11 +15,16 @@ const LANGS = [
 
 const MAX_PHOTOS = 4;
 
+interface ReviewPhoto {
+  url: string;
+  thumbUrl: string | null;
+}
+
 interface MyReview {
   rating: number;
   body: string | null;
   body_lang: string;
-  photos: string[];
+  photos: ReviewPhoto[];
 }
 interface ReviewContext {
   eligible: boolean;
@@ -50,7 +55,7 @@ export default function ReviewForm({
   const [rating, setRating] = useState(5);
   const [body, setBody] = useState("");
   const [bodyLang, setBodyLang] = useState<string>(locale);
-  const [photos, setPhotos] = useState<string[]>([]);
+  const [photos, setPhotos] = useState<ReviewPhoto[]>([]);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
 
@@ -115,7 +120,11 @@ export default function ReviewForm({
           );
           continue;
         }
-        setPhotos((ps) => (ps.length < MAX_PHOTOS ? [...ps, data.url] : ps));
+        setPhotos((ps) =>
+          ps.length < MAX_PHOTOS
+            ? [...ps, { url: data.url, thumbUrl: data.thumbUrl ?? null }]
+            : ps
+        );
       }
     } finally {
       setUploading(false);
@@ -123,7 +132,7 @@ export default function ReviewForm({
   }
 
   function removePhoto(url: string) {
-    setPhotos((ps) => ps.filter((p) => p !== url));
+    setPhotos((ps) => ps.filter((p) => p.url !== url));
   }
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -244,17 +253,17 @@ export default function ReviewForm({
           {t("review.photos")} ({photos.length}/{MAX_PHOTOS})
         </span>
         <div className="mt-1 flex flex-wrap items-center gap-2">
-          {photos.map((url) => (
-            <span key={url} className="relative">
+          {photos.map((p) => (
+            <span key={p.url} className="relative">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src={url}
+                src={p.thumbUrl ?? p.url}
                 alt=""
                 className="h-16 w-16 rounded-lg object-cover"
               />
               <button
                 type="button"
-                onClick={() => removePhoto(url)}
+                onClick={() => removePhoto(p.url)}
                 aria-label={t("review.removePhoto")}
                 className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-stone-700 text-xs text-white hover:bg-stone-900"
               >

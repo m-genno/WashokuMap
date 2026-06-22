@@ -16,7 +16,7 @@ interface Row {
   created_at: string;
   report_count: number;
   reasons: string[];
-  photos: string[];
+  photos: { url: string; thumbUrl: string | null }[];
 }
 
 const FILTERS: { key: string; label: string }[] = [
@@ -182,11 +182,11 @@ export default function AdminReviewModerationList() {
 
               {r.photos.length > 0 && (
                 <div className="mt-2 flex flex-wrap gap-2">
-                  {r.photos.map((url) => (
-                    <a key={url} href={url} target="_blank" rel="noopener noreferrer">
+                  {r.photos.map((ph) => (
+                    <a key={ph.url} href={ph.url} target="_blank" rel="noopener noreferrer">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
-                        src={url}
+                        src={ph.thumbUrl ?? ph.url}
                         alt=""
                         loading="lazy"
                         className="h-16 w-16 rounded-lg object-cover"

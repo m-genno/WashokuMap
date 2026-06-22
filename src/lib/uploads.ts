@@ -1,31 +1,34 @@
 import { randomUUID } from "node:crypto";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
+import sharp from "sharp";
 
 /**
- * 画像アップロードのローカル保存。
+ * 画像アップロードのローカル保存(軽量化・サムネ生成つき)。
  *
  * 外部ストレージ(S3等)を増やさず、ローカルファイルシステムに保存して
  * /api/uploads/<name> で配信する。保存先は UPLOAD_DIR(既定: ./uploads)。
- * 単一サーバ向けの簡易実装。サーバレス/水平分割では将来オブジェクトストレージへ。
+ *
+ * アップロード時に sharp で2サイズを生成する:
+ *   - 表示用 url:    最大 1600px / WebP q80(EXIF 回転を反映、メタデータ除去)
+ *   - サムネ thumbUrl: 最大 400px  / WebP q70
+ * これによりスマホの数MB写真も数十〜百数十KBに軽量化される。
  */
 
-const MIME_EXT: Record<string, string> = {
-  "image/jpeg": "jpg",
-  "image/png": "png",
-  "image/webp": "webp",
-};
+export const MAX_UPLOAD_BYTES = 5 * 1024 * 1024; // 5MB(入力上限)
+
+const FULL_MAX = 1600;
+const THUMB_MAX = 400;
+
+/** 配信URL名の検証(パストラバーサル防止)。UUID(.t).webp 等のみ許可。 */
+const NAME_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}(-t)?\.(webp|jpg|png)$/;
 
 const EXT_MIME: Record<string, string> = {
+  webp: "image/webp",
   jpg: "image/jpeg",
   png: "image/png",
-  webp: "image/webp",
 };
-
-export const MAX_UPLOAD_BYTES = 5 * 1024 * 1024; // 5MB
-
-/** 配信URL名の検証(パストラバーサル防止)。例: 1f...e.jpg */
-const NAME_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.(jpg|png|webp)$/;
 
 /** /api/uploads/<name> 形式のURLか(口コミに保存してよいURLか)。 */
 export function isUploadUrl(url: string): boolean {
@@ -40,24 +43,49 @@ function uploadDir(): string {
 }
 
 export type SaveResult =
-  | { ok: true; url: string }
+  | { ok: true; url: string; thumbUrl: string }
   | { ok: false; reason: "unsupported_type" | "too_large" | "write_failed" };
 
-/** 画像を保存して配信URLを返す。type/サイズを検証。 */
-export async function saveImage(
-  buffer: Buffer,
-  mime: string
-): Promise<SaveResult> {
-  const ext = MIME_EXT[mime];
-  if (!ext) return { ok: false, reason: "unsupported_type" };
+/**
+ * 画像を軽量化・サムネ生成して保存し、表示用URLとサムネURLを返す。
+ * デコードできない入力(画像でない等)は unsupported_type。
+ */
+export async function saveImage(buffer: Buffer): Promise<SaveResult> {
   if (buffer.length > MAX_UPLOAD_BYTES) return { ok: false, reason: "too_large" };
 
-  const name = `${randomUUID()}.${ext}`;
+  let full: Buffer;
+  let thumb: Buffer;
+  try {
+    // rotate() で EXIF の向きを反映。clone で同一入力から2サイズを生成。
+    const base = sharp(buffer, { failOn: "error" }).rotate();
+    full = await base
+      .clone()
+      .resize({ width: FULL_MAX, height: FULL_MAX, fit: "inside", withoutEnlargement: true })
+      .webp({ quality: 80 })
+      .toBuffer();
+    thumb = await base
+      .clone()
+      .resize({ width: THUMB_MAX, height: THUMB_MAX, fit: "inside", withoutEnlargement: true })
+      .webp({ quality: 70 })
+      .toBuffer();
+  } catch (err) {
+    console.error("[uploads] decode/resize failed:", err);
+    return { ok: false, reason: "unsupported_type" };
+  }
+
+  const id = randomUUID();
+  const fullName = `${id}.webp`;
+  const thumbName = `${id}-t.webp`;
   try {
     const dir = uploadDir();
     await mkdir(dir, { recursive: true });
-    await writeFile(path.join(dir, name), buffer);
-    return { ok: true, url: `/api/uploads/${name}` };
+    await writeFile(path.join(dir, fullName), full);
+    await writeFile(path.join(dir, thumbName), thumb);
+    return {
+      ok: true,
+      url: `/api/uploads/${fullName}`,
+      thumbUrl: `/api/uploads/${thumbName}`,
+    };
   } catch (err) {
     console.error("[uploads] write failed:", err);
     return { ok: false, reason: "write_failed" };

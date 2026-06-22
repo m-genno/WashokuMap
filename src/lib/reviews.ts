@@ -10,11 +10,17 @@ const QUALIFYING_STATUSES = ["confirmed", "completed"] as const;
 
 export const MAX_REVIEW_PHOTOS = 4;
 
+/** 口コミ写真。url=表示用(<=1600px) / thumbUrl=サムネ(<=400px)。 */
+export interface ReviewPhoto {
+  url: string;
+  thumbUrl: string | null;
+}
+
 export interface MyReview {
   rating: number;
   body: string | null;
   body_lang: string;
-  photos: string[];
+  photos: ReviewPhoto[];
 }
 
 export interface ReviewContext {
@@ -46,9 +52,11 @@ export async function getReviewContext(
     query<MyReview>(
       `SELECT rating, body, body_lang,
               COALESCE(
-                (SELECT array_agg(rp.url ORDER BY rp.sort_order)
+                (SELECT json_agg(
+                          json_build_object('url', rp.url, 'thumbUrl', rp.thumb_url)
+                          ORDER BY rp.sort_order)
                  FROM review_photo rp WHERE rp.review_id = review.id),
-                '{}'
+                '[]'
               ) AS photos
        FROM review
        WHERE restaurant_id = $1 AND user_id = $2`,
@@ -72,8 +80,8 @@ export interface UpsertReviewInput {
   bodyLang: string;
   /** 日本語訳キャッシュ(呼び出し側で translateToJa して渡す)。例: {ja: "..."} */
   bodyTranslations: Record<string, string>;
-  /** 添付写真URL(/api/uploads/...)。未指定なら写真は変更しない。 */
-  photos?: string[];
+  /** 添付写真(表示用/サムネのURL対)。未指定なら写真は変更しない。 */
+  photos?: ReviewPhoto[];
 }
 
 export interface UpsertedReview {
@@ -123,15 +131,15 @@ export async function upsertReview(
 
     // 写真が指定されていれば総入れ替え(編集時の差し替えにも対応)。
     if (input.photos) {
-      const urls = input.photos.slice(0, MAX_REVIEW_PHOTOS);
+      const pics = input.photos.slice(0, MAX_REVIEW_PHOTOS);
       await client.query(`DELETE FROM review_photo WHERE review_id = $1`, [
         review.id,
       ]);
-      for (let i = 0; i < urls.length; i++) {
+      for (let i = 0; i < pics.length; i++) {
         await client.query(
-          `INSERT INTO review_photo (review_id, url, sort_order)
-           VALUES ($1, $2, $3)`,
-          [review.id, urls[i], i]
+          `INSERT INTO review_photo (review_id, url, thumb_url, sort_order)
+           VALUES ($1, $2, $3, $4)`,
+          [review.id, pics[i].url, pics[i].thumbUrl ?? null, i]
         );
       }
     }
@@ -195,7 +203,7 @@ export interface ModerationReviewRow {
   created_at: string;
   report_count: number;
   reasons: string[];
-  photos: string[];
+  photos: ReviewPhoto[];
 }
 
 /**
@@ -234,9 +242,11 @@ export async function listReviewsForModeration(opts: {
          '{}'
        ) AS reasons,
        COALESCE(
-         (SELECT array_agg(rp.url ORDER BY rp.sort_order)
+         (SELECT json_agg(
+                   json_build_object('url', rp.url, 'thumbUrl', rp.thumb_url)
+                   ORDER BY rp.sort_order)
           FROM review_photo rp WHERE rp.review_id = rv.id),
-         '{}'
+         '[]'
        ) AS photos
      FROM review rv
      JOIN restaurant r ON r.id = rv.restaurant_id

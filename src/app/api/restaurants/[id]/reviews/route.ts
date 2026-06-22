@@ -82,12 +82,20 @@ export async function POST(
   const bodyText = payload.body?.trim() || null;
   const bodyLang = payload.bodyLang?.trim() || "en";
 
-  // 写真URLは自前のアップロード(/api/uploads/...)のみ許可(外部URL混入を防ぐ)。
-  const photos = Array.isArray(payload.photos)
-    ? payload.photos.filter((p): p is string => typeof p === "string")
-    : [];
-  if (photos.length > MAX_REVIEW_PHOTOS) return bad("too_many_photos");
-  if (!photos.every(isUploadUrl)) return bad("invalid_photo");
+  // 写真は自前のアップロード(/api/uploads/...)のみ許可(外部URL混入を防ぐ)。
+  const rawPhotos = Array.isArray(payload.photos) ? payload.photos : [];
+  if (rawPhotos.length > MAX_REVIEW_PHOTOS) return bad("too_many_photos");
+  const photos: { url: string; thumbUrl: string | null }[] = [];
+  for (const p of rawPhotos) {
+    if (!p || typeof p !== "object") return bad("invalid_photo");
+    const url = (p as { url?: unknown }).url;
+    const thumbUrl = (p as { thumbUrl?: unknown }).thumbUrl;
+    if (typeof url !== "string" || !isUploadUrl(url)) return bad("invalid_photo");
+    if (thumbUrl != null && (typeof thumbUrl !== "string" || !isUploadUrl(thumbUrl))) {
+      return bad("invalid_photo");
+    }
+    photos.push({ url, thumbUrl: typeof thumbUrl === "string" ? thumbUrl : null });
+  }
 
   // 店舗の存在(公開)確認。
   const restaurant = await getRestaurantById(restaurantId);
