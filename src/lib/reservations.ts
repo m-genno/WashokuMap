@@ -165,8 +165,29 @@ export async function listReservationsForAdmin(opts: {
   );
 }
 
+/** 状態遷移後にお客様へ通知するため、同トランザクション内で取得する付随情報。 */
+export interface ReservationNotifyDetail {
+  restaurantName: string;
+  restaurantNameTranslations: Record<string, string> | null;
+  restaurantPhone: string | null;
+  desiredAt: string;
+  desiredAltAt: string | null;
+  partySize: number;
+  guestName: string;
+  guestEmail: string | null;
+  guestLang: string;
+}
+
 export type SetReservationStatusResult =
-  | { ok: true; reservation: { id: string; status: ReservationStatusValue; from_status: ReservationStatusValue } }
+  | {
+      ok: true;
+      reservation: {
+        id: string;
+        status: ReservationStatusValue;
+        from_status: ReservationStatusValue;
+      };
+      detail: ReservationNotifyDetail;
+    }
   | { ok: false; reason: "not_found" | "invalid_transition"; from?: ReservationStatusValue };
 
 /**
@@ -186,15 +207,36 @@ export async function setReservationStatus(
   try {
     await client.query("BEGIN");
 
-    const cur = await client.query<{ status: ReservationStatusValue }>(
-      `SELECT status FROM reservation WHERE id = $1 FOR UPDATE`,
+    const cur = await client.query<{
+      status: ReservationStatusValue;
+      restaurant_name: string;
+      restaurant_name_translations: Record<string, string> | null;
+      restaurant_phone: string | null;
+      desired_at: string;
+      desired_alt_at: string | null;
+      party_size: number;
+      guest_name: string;
+      guest_email: string | null;
+      guest_lang: string;
+    }>(
+      `SELECT res.status,
+              r.name  AS restaurant_name,
+              r.name_translations AS restaurant_name_translations,
+              r.phone AS restaurant_phone,
+              res.desired_at, res.desired_alt_at, res.party_size,
+              res.guest_name, res.guest_email, res.guest_lang
+       FROM reservation res
+       JOIN restaurant r ON r.id = res.restaurant_id
+       WHERE res.id = $1
+       FOR UPDATE OF res`,
       [id]
     );
     if (cur.rows.length === 0) {
       await client.query("ROLLBACK");
       return { ok: false, reason: "not_found" };
     }
-    const from = cur.rows[0].status;
+    const row = cur.rows[0];
+    const from = row.status;
 
     if (!ALLOWED_TRANSITIONS[from]?.includes(toStatus)) {
       await client.query("ROLLBACK");
@@ -218,7 +260,21 @@ export async function setReservationStatus(
     );
 
     await client.query("COMMIT");
-    return { ok: true, reservation: { id, status: toStatus, from_status: from } };
+    return {
+      ok: true,
+      reservation: { id, status: toStatus, from_status: from },
+      detail: {
+        restaurantName: row.restaurant_name,
+        restaurantNameTranslations: row.restaurant_name_translations,
+        restaurantPhone: row.restaurant_phone,
+        desiredAt: row.desired_at,
+        desiredAltAt: row.desired_alt_at,
+        partySize: row.party_size,
+        guestName: row.guest_name,
+        guestEmail: row.guest_email,
+        guestLang: row.guest_lang,
+      },
+    };
   } catch (err) {
     await client.query("ROLLBACK");
     throw err;

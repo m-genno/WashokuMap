@@ -5,6 +5,11 @@ import {
   RESERVATION_STATUSES,
   type ReservationStatusValue,
 } from "@/lib/reservations";
+import {
+  isGuestNotifyStatus,
+  sendGuestReservationNotification,
+  recordGuestNotificationEvent,
+} from "@/lib/guestNotifications";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -51,7 +56,28 @@ export async function PATCH(
         { status: 409 }
       );
     }
-    return NextResponse.json({ reservation: result.reservation });
+
+    // 可否が決まる遷移(確定/お断り/代替提案/キャンセル)はお客様へ通知する。
+    // 通知失敗で状態変更が無効にならないよう保護する。
+    let notified = false;
+    if (isGuestNotifyStatus(result.reservation.status)) {
+      try {
+        const sendResult = await sendGuestReservationNotification(
+          { id: result.reservation.id, ...result.detail },
+          result.reservation.status
+        );
+        await recordGuestNotificationEvent(
+          result.reservation.id,
+          result.reservation.status,
+          sendResult
+        );
+        notified = sendResult.delivered;
+      } catch (notifyErr) {
+        console.error("guest notification failed:", notifyErr);
+      }
+    }
+
+    return NextResponse.json({ reservation: result.reservation, notified });
   } catch (err) {
     console.error("admin set reservation status failed:", err);
     return NextResponse.json({ error: "update_failed" }, { status: 500 });
