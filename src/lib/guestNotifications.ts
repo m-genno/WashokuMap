@@ -65,6 +65,7 @@ interface Strings {
   partyUnit: (n: number) => string;
   labelPhone: string;
   labelRef: string;
+  labelStatus: string;
   closing: string;
 }
 
@@ -93,6 +94,7 @@ const STRINGS: Record<TemplateLocale, Strings> = {
     partyUnit: (n) => `${n}名`,
     labelPhone: "店舗電話",
     labelRef: "受付番号",
+    labelStatus: "予約状況の確認・代替案へのご回答",
     closing: "WashokuMap",
   },
   en: {
@@ -119,6 +121,7 @@ const STRINGS: Record<TemplateLocale, Strings> = {
     partyUnit: (n) => `${n} ${n === 1 ? "person" : "people"}`,
     labelPhone: "Restaurant phone",
     labelRef: "Reference",
+    labelStatus: "View status / reply to the alternative",
     closing: "WashokuMap",
   },
   "zh-Hans": {
@@ -144,6 +147,7 @@ const STRINGS: Record<TemplateLocale, Strings> = {
     partyUnit: (n) => `${n}位`,
     labelPhone: "店铺电话",
     labelRef: "受理编号",
+    labelStatus: "查看状态 / 回复替代方案",
     closing: "WashokuMap",
   },
   "zh-Hant": {
@@ -169,6 +173,7 @@ const STRINGS: Record<TemplateLocale, Strings> = {
     partyUnit: (n) => `${n}位`,
     labelPhone: "店鋪電話",
     labelRef: "受理編號",
+    labelStatus: "查看狀態 / 回覆替代方案",
     closing: "WashokuMap",
   },
   ko: {
@@ -195,6 +200,7 @@ const STRINGS: Record<TemplateLocale, Strings> = {
     partyUnit: (n) => `${n}명`,
     labelPhone: "매장 전화",
     labelRef: "접수번호",
+    labelStatus: "상태 확인 / 대체 일정 회신",
     closing: "WashokuMap",
   },
 };
@@ -248,7 +254,16 @@ export function buildGuestEmail(
   if (data.restaurantPhone) {
     lines.push(`${s.labelPhone}: ${data.restaurantPhone}`);
   }
-  lines.push("", `${s.labelRef}: ${data.id}`, "", "—", s.closing);
+  lines.push("", `${s.labelRef}: ${data.id}`);
+
+  // 予約状況ページへの導線(代替案はここから承諾/お断りできる)。
+  // APP_BASE_URL 未設定時はリンクを省く。
+  const base = process.env.APP_BASE_URL?.replace(/\/$/, "");
+  if (base) {
+    lines.push("", `${s.labelStatus}:`, `${base}/reservations/${data.id}`);
+  }
+
+  lines.push("", "—", s.closing);
 
   return { subject, text: lines.join("\n") };
 }

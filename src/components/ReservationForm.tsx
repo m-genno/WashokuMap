@@ -99,12 +99,20 @@ export default function ReservationForm({
             <dd>{state.status}</dd>
           </div>
         </dl>
-        <Link
-          href={`/restaurants/${restaurantId}`}
-          className="mt-4 inline-block rounded-full border border-emerald-300 px-5 py-2 text-sm font-medium text-emerald-900 hover:bg-emerald-100"
-        >
-          {t("reserve.back")}
-        </Link>
+        <div className="mt-4 flex flex-wrap gap-3">
+          <Link
+            href={`/reservations/${state.id}`}
+            className="inline-block rounded-full bg-emerald-700 px-5 py-2 text-sm font-medium text-emerald-50 hover:bg-emerald-800"
+          >
+            {t("resvStatus.viewStatus")}
+          </Link>
+          <Link
+            href={`/restaurants/${restaurantId}`}
+            className="inline-block rounded-full border border-emerald-300 px-5 py-2 text-sm font-medium text-emerald-900 hover:bg-emerald-100"
+          >
+            {t("reserve.back")}
+          </Link>
+        </div>
       </div>
     );
   }

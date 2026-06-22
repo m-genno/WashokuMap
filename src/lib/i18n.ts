@@ -35,6 +35,15 @@ export function htmlLang(locale: Locale): string {
   return locale;
 }
 
+/** Intl(toLocaleString 等)向けの BCP47 言語タグ。 */
+export const BCP47_TAGS: Record<Locale, string> = {
+  ja: "ja-JP",
+  en: "en-US",
+  "zh-Hans": "zh-CN",
+  "zh-Hant": "zh-TW",
+  ko: "ko-KR",
+};
+
 /**
  * 多言語データ(jsonb の {ja,en,...})から locale に最も合う訳を選ぶ。
  * locale → en → ja の順でフォールバックし、無ければ fallback(原文)を返す。
@@ -179,6 +188,42 @@ const ja: Dict = {
   "reservePage.notSupported":
     "このお店はオンラインのリクエスト予約に対応していません。",
   "reservePage.seeMethods": "店舗詳細の予約方法を見る →",
+  "resvStatus.pageTitle": "予約状況",
+  "resvStatus.statusLabel": "状態",
+  "resvStatus.s.requested": "返答待ち",
+  "resvStatus.s.confirmed": "確定",
+  "resvStatus.s.declined": "お断り",
+  "resvStatus.s.counter_offer": "代替案のご提案",
+  "resvStatus.s.cancelled": "キャンセル",
+  "resvStatus.s.completed": "来店済み",
+  "resvStatus.s.no_show": "未来店",
+  "resvStatus.intro.requested":
+    "お店からの返答をお待ちください。確定または代替案をご連絡します。",
+  "resvStatus.intro.confirmed":
+    "ご予約は確定しています。当日お待ちしております。",
+  "resvStatus.intro.declined":
+    "申し訳ありませんが、ご希望の日時はお受けできませんでした。",
+  "resvStatus.intro.counter_offer":
+    "ご希望の日時は満席でしたが、下記の代替案をご案内できます。ご回答ください。",
+  "resvStatus.intro.cancelled": "このご予約はキャンセルされました。",
+  "resvStatus.intro.completed": "ご来店ありがとうございました。",
+  "resvStatus.intro.no_show": "ご来店の記録がありませんでした。",
+  "resvStatus.restaurant": "店舗",
+  "resvStatus.desiredAt": "ご希望日時",
+  "resvStatus.altAt": "代替のご提案",
+  "resvStatus.partySize": "人数",
+  "resvStatus.partyUnit": "{n}名",
+  "resvStatus.refNo": "受付番号",
+  "resvStatus.accept": "代替案で確定する",
+  "resvStatus.decline": "お断りする",
+  "resvStatus.processing": "処理中…",
+  "resvStatus.actionError":
+    "操作に失敗しました。時間をおいて再度お試しください。",
+  "resvStatus.notPending":
+    "この予約は代替案の回答受付を終了しています。最新の状態をご確認ください。",
+  "resvStatus.viewStatus": "予約状況を確認する →",
+  "resvStatus.toRestaurant": "店舗詳細を見る →",
+  "resvStatus.home": "← ホームへ",
 };
 
 const en: Dict = {
@@ -308,6 +353,41 @@ const en: Dict = {
   "reservePage.notSupported":
     "This restaurant doesn’t support online request reservations.",
   "reservePage.seeMethods": "See reservation options on the detail page →",
+  "resvStatus.pageTitle": "Reservation status",
+  "resvStatus.statusLabel": "Status",
+  "resvStatus.s.requested": "Awaiting reply",
+  "resvStatus.s.confirmed": "Confirmed",
+  "resvStatus.s.declined": "Declined",
+  "resvStatus.s.counter_offer": "Alternative offered",
+  "resvStatus.s.cancelled": "Cancelled",
+  "resvStatus.s.completed": "Visited",
+  "resvStatus.s.no_show": "No-show",
+  "resvStatus.intro.requested":
+    "Please wait for the restaurant’s reply. We’ll let you know the confirmation or an alternative.",
+  "resvStatus.intro.confirmed":
+    "Your reservation is confirmed. We look forward to seeing you.",
+  "resvStatus.intro.declined":
+    "We’re sorry, but we couldn’t accept your requested time.",
+  "resvStatus.intro.counter_offer":
+    "Your requested time was full, but we can offer the alternative below. Please reply.",
+  "resvStatus.intro.cancelled": "This reservation has been cancelled.",
+  "resvStatus.intro.completed": "Thank you for visiting.",
+  "resvStatus.intro.no_show": "No visit was recorded for this reservation.",
+  "resvStatus.restaurant": "Restaurant",
+  "resvStatus.desiredAt": "Requested time",
+  "resvStatus.altAt": "Alternative offer",
+  "resvStatus.partySize": "Party size",
+  "resvStatus.partyUnit": "{n} people",
+  "resvStatus.refNo": "Reference",
+  "resvStatus.accept": "Confirm with this time",
+  "resvStatus.decline": "Decline",
+  "resvStatus.processing": "Processing…",
+  "resvStatus.actionError": "The action failed. Please try again later.",
+  "resvStatus.notPending":
+    "This reservation is no longer awaiting a reply. Please check the latest status.",
+  "resvStatus.viewStatus": "Check reservation status →",
+  "resvStatus.toRestaurant": "View restaurant →",
+  "resvStatus.home": "← Home",
 };
 
 const zhHans: Dict = {
@@ -427,6 +507,37 @@ const zhHans: Dict = {
   "reservePage.title": "预订 {name}",
   "reservePage.notSupported": "本店不支持在线申请预订。",
   "reservePage.seeMethods": "查看店铺详情的预订方式 →",
+  "resvStatus.pageTitle": "预订状态",
+  "resvStatus.statusLabel": "状态",
+  "resvStatus.s.requested": "等待回复",
+  "resvStatus.s.confirmed": "已确认",
+  "resvStatus.s.declined": "已婉拒",
+  "resvStatus.s.counter_offer": "提供替代方案",
+  "resvStatus.s.cancelled": "已取消",
+  "resvStatus.s.completed": "已到店",
+  "resvStatus.s.no_show": "未到店",
+  "resvStatus.intro.requested": "请等待店铺回复。我们将通知您确认结果或替代方案。",
+  "resvStatus.intro.confirmed": "您的预订已确认。期待您的光临。",
+  "resvStatus.intro.declined": "非常抱歉，您所希望的时间无法接受预订。",
+  "resvStatus.intro.counter_offer":
+    "您希望的时间已订满，但我们可以提供以下替代方案，敬请回复。",
+  "resvStatus.intro.cancelled": "此预订已被取消。",
+  "resvStatus.intro.completed": "感谢您的光临。",
+  "resvStatus.intro.no_show": "此预订没有到店记录。",
+  "resvStatus.restaurant": "店铺",
+  "resvStatus.desiredAt": "希望时间",
+  "resvStatus.altAt": "替代方案",
+  "resvStatus.partySize": "人数",
+  "resvStatus.partyUnit": "{n}位",
+  "resvStatus.refNo": "受理编号",
+  "resvStatus.accept": "按此时间确认",
+  "resvStatus.decline": "婉拒",
+  "resvStatus.processing": "处理中…",
+  "resvStatus.actionError": "操作失败，请稍后再试。",
+  "resvStatus.notPending": "此预订已结束替代方案的回复受理，请确认最新状态。",
+  "resvStatus.viewStatus": "查看预订状态 →",
+  "resvStatus.toRestaurant": "查看店铺 →",
+  "resvStatus.home": "← 返回首页",
 };
 
 const zhHant: Dict = {
@@ -546,6 +657,37 @@ const zhHant: Dict = {
   "reservePage.title": "預訂 {name}",
   "reservePage.notSupported": "本店不支援線上申請預訂。",
   "reservePage.seeMethods": "查看店家詳情的預訂方式 →",
+  "resvStatus.pageTitle": "預訂狀態",
+  "resvStatus.statusLabel": "狀態",
+  "resvStatus.s.requested": "等待回覆",
+  "resvStatus.s.confirmed": "已確認",
+  "resvStatus.s.declined": "已婉拒",
+  "resvStatus.s.counter_offer": "提供替代方案",
+  "resvStatus.s.cancelled": "已取消",
+  "resvStatus.s.completed": "已到店",
+  "resvStatus.s.no_show": "未到店",
+  "resvStatus.intro.requested": "請等待店家回覆。我們將通知您確認結果或替代方案。",
+  "resvStatus.intro.confirmed": "您的預訂已確認。期待您的光臨。",
+  "resvStatus.intro.declined": "非常抱歉，您所希望的時間無法接受預訂。",
+  "resvStatus.intro.counter_offer":
+    "您希望的時間已訂滿，但我們可以提供以下替代方案，敬請回覆。",
+  "resvStatus.intro.cancelled": "此預訂已被取消。",
+  "resvStatus.intro.completed": "感謝您的光臨。",
+  "resvStatus.intro.no_show": "此預訂沒有到店記錄。",
+  "resvStatus.restaurant": "店家",
+  "resvStatus.desiredAt": "希望時間",
+  "resvStatus.altAt": "替代方案",
+  "resvStatus.partySize": "人數",
+  "resvStatus.partyUnit": "{n}位",
+  "resvStatus.refNo": "受理編號",
+  "resvStatus.accept": "按此時間確認",
+  "resvStatus.decline": "婉拒",
+  "resvStatus.processing": "處理中…",
+  "resvStatus.actionError": "操作失敗，請稍後再試。",
+  "resvStatus.notPending": "此預訂已結束替代方案的回覆受理，請確認最新狀態。",
+  "resvStatus.viewStatus": "查看預訂狀態 →",
+  "resvStatus.toRestaurant": "查看店家 →",
+  "resvStatus.home": "← 返回首頁",
 };
 
 const ko: Dict = {
@@ -668,6 +810,40 @@ const ko: Dict = {
   "reservePage.title": "{name} 예약",
   "reservePage.notSupported": "이 가게는 온라인 요청 예약을 지원하지 않습니다.",
   "reservePage.seeMethods": "상세 페이지에서 예약 방법 보기 →",
+  "resvStatus.pageTitle": "예약 상태",
+  "resvStatus.statusLabel": "상태",
+  "resvStatus.s.requested": "답변 대기",
+  "resvStatus.s.confirmed": "확정",
+  "resvStatus.s.declined": "거절",
+  "resvStatus.s.counter_offer": "대체 일정 제안",
+  "resvStatus.s.cancelled": "취소",
+  "resvStatus.s.completed": "방문 완료",
+  "resvStatus.s.no_show": "노쇼",
+  "resvStatus.intro.requested":
+    "매장의 답변을 기다려 주세요. 확정 또는 대체 일정을 안내해 드립니다.",
+  "resvStatus.intro.confirmed": "예약이 확정되었습니다. 방문을 기다리겠습니다.",
+  "resvStatus.intro.declined":
+    "죄송하지만 요청하신 일시에는 예약을 받지 못했습니다.",
+  "resvStatus.intro.counter_offer":
+    "요청하신 일시는 만석이었으나 아래 대체 일정을 안내해 드립니다. 회신 부탁드립니다.",
+  "resvStatus.intro.cancelled": "이 예약은 취소되었습니다.",
+  "resvStatus.intro.completed": "방문해 주셔서 감사합니다.",
+  "resvStatus.intro.no_show": "이 예약은 방문 기록이 없습니다.",
+  "resvStatus.restaurant": "매장",
+  "resvStatus.desiredAt": "희망 일시",
+  "resvStatus.altAt": "대체 제안",
+  "resvStatus.partySize": "인원",
+  "resvStatus.partyUnit": "{n}명",
+  "resvStatus.refNo": "접수번호",
+  "resvStatus.accept": "이 일정으로 확정",
+  "resvStatus.decline": "거절",
+  "resvStatus.processing": "처리 중…",
+  "resvStatus.actionError": "처리에 실패했습니다. 잠시 후 다시 시도해 주세요.",
+  "resvStatus.notPending":
+    "이 예약은 대체 일정 회신 접수가 종료되었습니다. 최신 상태를 확인해 주세요.",
+  "resvStatus.viewStatus": "예약 상태 확인하기 →",
+  "resvStatus.toRestaurant": "매장 보기 →",
+  "resvStatus.home": "← 홈으로",
 };
 
 const dictionaries: Record<Locale, Dict> = {

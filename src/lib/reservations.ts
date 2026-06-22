@@ -90,11 +90,14 @@ export async function createReservation(
 
 export interface ReservationStatus {
   id: string;
-  status: string;
+  status: ReservationStatusValue;
   desired_at: string;
+  desired_alt_at: string | null;
   party_size: number;
   guest_name: string;
   restaurant_id: string;
+  restaurant_name: string;
+  restaurant_name_translations: Record<string, string> | null;
 }
 
 const UUID_RE =
@@ -193,16 +196,25 @@ export type SetReservationStatusResult =
 /**
  * 予約の状態を遷移させ、監査ログ(reservation_event)を1トランザクションで記録する。
  * - 許可されない遷移は invalid_transition で拒否(終端状態からの変更も不可)。
+ * - expectedFrom 指定時、現在の状態が一致しなければ invalid_transition で拒否
+ *   (お客様操作の競合対策。例: 既に確定済みの予約への二重操作を防ぐ)。
  * - confirmed へ遷移したときは confirmed_at を打刻。
+ * - channel は監査ログの記録元(desk/guest 等)。
  */
 export async function setReservationStatus(
   id: string,
   toStatus: ReservationStatusValue,
-  opts: { actor?: string; note?: string | null } = {}
+  opts: {
+    actor?: string;
+    note?: string | null;
+    channel?: string;
+    expectedFrom?: ReservationStatusValue;
+  } = {}
 ): Promise<SetReservationStatusResult> {
   if (!UUID_RE.test(id)) return { ok: false, reason: "not_found" };
 
   const actor = opts.actor ?? "desk";
+  const channel = opts.channel ?? "desk";
   const client = await pool.connect();
   try {
     await client.query("BEGIN");
@@ -238,6 +250,11 @@ export async function setReservationStatus(
     const row = cur.rows[0];
     const from = row.status;
 
+    if (opts.expectedFrom && from !== opts.expectedFrom) {
+      await client.query("ROLLBACK");
+      return { ok: false, reason: "invalid_transition", from };
+    }
+
     if (!ALLOWED_TRANSITIONS[from]?.includes(toStatus)) {
       await client.query("ROLLBACK");
       return { ok: false, reason: "invalid_transition", from };
@@ -255,8 +272,8 @@ export async function setReservationStatus(
     await client.query(
       `INSERT INTO reservation_event
          (reservation_id, from_status, to_status, channel, actor, note)
-       VALUES ($1, $2, $3, 'desk', $4, $5)`,
-      [id, from, toStatus, actor, opts.note ?? null]
+       VALUES ($1, $2, $3, $4, $5, $6)`,
+      [id, from, toStatus, channel, actor, opts.note ?? null]
     );
 
     await client.query("COMMIT");
@@ -289,8 +306,13 @@ export async function getReservationById(
 ): Promise<ReservationStatus | null> {
   if (!UUID_RE.test(id)) return null;
   const rows = await query<ReservationStatus>(
-    `SELECT id, status, desired_at, party_size, guest_name, restaurant_id
-     FROM reservation WHERE id = $1`,
+    `SELECT res.id, res.status, res.desired_at, res.desired_alt_at,
+            res.party_size, res.guest_name, res.restaurant_id,
+            r.name AS restaurant_name,
+            r.name_translations AS restaurant_name_translations
+     FROM reservation res
+     JOIN restaurant r ON r.id = res.restaurant_id
+     WHERE res.id = $1`,
     [id]
   );
   return rows[0] ?? null;

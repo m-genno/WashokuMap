@@ -27,6 +27,7 @@ services:
       - ./db/migrations/0005_reservations.sql:/docker-entrypoint-initdb.d/0005_reservations.sql:ro
       - ./db/migrations/0006_reviews.sql:/docker-entrypoint-initdb.d/0006_reviews.sql:ro
       - ./db/migrations/0007_search_trgm.sql:/docker-entrypoint-initdb.d/0007_search_trgm.sql:ro
+      - ./db/migrations/0008_event_channel_web.sql:/docker-entrypoint-initdb.d/0008_event_channel_web.sql:ro
       - ./db/seed/genres.sql:/docker-entrypoint-initdb.d/99_genres.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d washokumap"]
