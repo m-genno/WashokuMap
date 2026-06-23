@@ -212,12 +212,14 @@
 ## 10. テストデータ(開発・動作確認用)
 
 ```bash
-npm run db:up      # DB起動(スキーマ自動適用)
-npm run db:seed    # サンプル + 約200店舗 + 関連データ(口コミ/予約/通報/営業時間)を投入
-npm run dev        # http://localhost:3000
+npm run db:up        # 空のDBを起動
+npm run db:migrate   # スキーマ + 必須参照データ(ジャンル)を適用(冪等)
+npm run db:seed      # サンプル + 約200店舗 + 関連データ(口コミ/予約/通報/営業時間)
+npm run dev          # http://localhost:3000
+# まとめて作り直し: npm run db:fresh(reset → migrate → seed)
 ```
 
-- `db:seed` は再実行しても安全(冪等)。
+- `db:migrate` / `db:seed` は再実行しても安全(冪等)。マイグレーションの仕組みは [`db/README.md`](../db/README.md) を参照。
 - バルク投入分だけ削除: `delete from restaurant where id::text like 'bbbb0000-%';`
 - 詳細は `db/seed/bulk_restaurants.sql` / `db/seed/bulk_activity.sql` を参照。
 

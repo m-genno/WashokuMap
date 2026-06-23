@@ -1,5 +1,7 @@
--- seed/genres.sql
--- 和食の代表的ジャンル。再実行しても安全なよう upsert。
+-- 0013_genres.sql
+-- 和食の代表的ジャンル(アプリ必須の参照データ)。再実行しても安全なよう upsert。
+-- ※ 以前は db/seed/genres.sql として docker init で投入していたが、本番でも必要な
+--   参照データのためマイグレーションへ移動。スキーマ(0003)の genre 表に依存。
 insert into genre (code, name_translations) values
   ('sushi',     '{"ja":"寿司","en":"Sushi","zh-Hans":"寿司","ko":"스시"}'),
   ('tempura',   '{"ja":"天ぷら","en":"Tempura","zh-Hans":"天妇罗","ko":"덴푸라"}'),
