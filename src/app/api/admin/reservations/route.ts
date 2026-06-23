@@ -10,15 +10,17 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 /**
- * GET /api/admin/reservations?status=requested|confirmed|...|all
+ * GET /api/admin/reservations?status=...&q=...&from=YYYY-MM-DD&to=YYYY-MM-DD
  * 予約デスク向けの予約一覧。status 省略時は requested(要対応)。
+ * q はお客様名/店名/メール/電話、from/to は希望日時の範囲で絞り込む。
  */
 export async function GET(req: NextRequest) {
   if (!isAdminAuthorized(req)) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
-  const raw = req.nextUrl.searchParams.get("status") ?? "requested";
+  const sp = req.nextUrl.searchParams;
+  const raw = sp.get("status") ?? "requested";
   let status: ReservationStatusValue | null;
   if (raw === "all") {
     status = null;
@@ -29,7 +31,12 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const reservations = await listReservationsForAdmin({ status });
+    const reservations = await listReservationsForAdmin({
+      status,
+      q: sp.get("q"),
+      from: sp.get("from"),
+      to: sp.get("to"),
+    });
     return NextResponse.json({ count: reservations.length, reservations });
   } catch (err) {
     console.error("admin list reservations failed:", err);

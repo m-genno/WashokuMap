@@ -145,13 +145,63 @@ export interface AdminReservationRow {
   created_at: string;
 }
 
-/** 予約デスク向けの予約一覧。status 指定で絞り込み(未指定=すべて)。 */
+/** ILIKE のワイルドカード(% _ \)をエスケープする。ESCAPE '\' と併用。 */
+function escapeLike(s: string): string {
+  return s.replace(/[\\%_]/g, (c) => `\\${c}`);
+}
+
+/**
+ * 予約デスク向けの予約一覧。
+ * - status: 状態で絞り込み(未指定=すべて)
+ * - q:      お客様名・店名・メール・電話の部分一致
+ * - from/to: 希望日時(desired_at)の範囲(日付。to はその日を含む)
+ */
 export async function listReservationsForAdmin(opts: {
   status?: ReservationStatusValue | null;
+  q?: string | null;
+  from?: string | null;
+  to?: string | null;
   limit?: number;
 }): Promise<AdminReservationRow[]> {
-  const status = opts.status ?? null;
+  const values: unknown[] = [];
+  const bind = (v: unknown) => {
+    values.push(v);
+    return `$${values.length}`;
+  };
+
+  const where: string[] = [];
+  if (opts.status) where.push(`res.status = ${bind(opts.status)}`);
+
+  const q = opts.q?.trim();
+  if (q) {
+    const p = bind(`%${escapeLike(q)}%`);
+    where.push(
+      `(res.guest_name ILIKE ${p} ESCAPE '\\'` +
+        ` OR r.name ILIKE ${p} ESCAPE '\\'` +
+        ` OR res.guest_email ILIKE ${p} ESCAPE '\\'` +
+        ` OR res.guest_phone ILIKE ${p} ESCAPE '\\')`
+    );
+  }
+
+  if (opts.from) {
+    const d = new Date(opts.from);
+    if (!Number.isNaN(d.getTime())) {
+      where.push(`res.desired_at >= ${bind(d.toISOString())}`);
+    }
+  }
+  if (opts.to) {
+    const d = new Date(opts.to);
+    if (!Number.isNaN(d.getTime())) {
+      // to はその日を含めるため翌日0時より前で判定。
+      d.setUTCDate(d.getUTCDate() + 1);
+      where.push(`res.desired_at < ${bind(d.toISOString())}`);
+    }
+  }
+
   const limit = Math.min(Math.max(opts.limit ?? 100, 1), 500);
+  const limitPh = bind(limit);
+  const whereSql = where.length ? `WHERE ${where.join(" AND ")}` : "";
+
   return query<AdminReservationRow>(
     `SELECT
        res.id, res.restaurant_id, r.name AS restaurant_name,
@@ -161,10 +211,10 @@ export async function listReservationsForAdmin(opts: {
        res.created_at
      FROM reservation res
      JOIN restaurant r ON r.id = res.restaurant_id
-     WHERE ($1::text IS NULL OR res.status = $1)
-     ORDER BY res.created_at DESC
-     LIMIT $2`,
-    [status, limit]
+     ${whereSql}
+     ORDER BY res.desired_at DESC
+     LIMIT ${limitPh}`,
+    values
   );
 }
 

@@ -104,6 +104,12 @@ function dietarySummary(d: Record<string, unknown> | null): string | null {
 
 export default function AdminReservationList() {
   const [filter, setFilter] = useState("requested");
+  // 入力中の値
+  const [q, setQ] = useState("");
+  const [from, setFrom] = useState("");
+  const [to, setTo] = useState("");
+  // 検索実行された値(取得に使う)
+  const [applied, setApplied] = useState({ q: "", from: "", to: "" });
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -117,7 +123,11 @@ export default function AdminReservationList() {
       setLoading(true);
       setError("");
       try {
-        const res = await fetch(`/api/admin/reservations?status=${filter}`, {
+        const params = new URLSearchParams({ status: filter });
+        if (applied.q) params.set("q", applied.q);
+        if (applied.from) params.set("from", applied.from);
+        if (applied.to) params.set("to", applied.to);
+        const res = await fetch(`/api/admin/reservations?${params.toString()}`, {
           headers: adminHeaders(),
         });
         if (cancelled) return;
@@ -147,7 +157,7 @@ export default function AdminReservationList() {
     return () => {
       cancelled = true;
     };
-  }, [filter, reloadKey]);
+  }, [filter, applied, reloadKey]);
 
   async function changeStatus(id: string, status: Status) {
     setBusyId(id);
@@ -176,8 +186,68 @@ export default function AdminReservationList() {
     }
   }
 
+  const hasFilters = !!(applied.q || applied.from || applied.to);
+
   return (
     <div>
+      {/* 検索・絞り込み(お客様名/店名/メール/電話、希望日の範囲) */}
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          setApplied({ q: q.trim(), from, to });
+        }}
+        className="mb-3 flex flex-wrap items-end gap-2"
+      >
+        <label className="flex flex-col text-xs text-stone-500">
+          検索(名前・店名・連絡先)
+          <input
+            type="search"
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="お客様名・店名・メール・電話"
+            className="mt-0.5 w-64 rounded-full border border-stone-300 bg-white px-4 py-1.5 text-sm text-stone-800 outline-none focus:border-orange-400"
+          />
+        </label>
+        <label className="flex flex-col text-xs text-stone-500">
+          希望日(から)
+          <input
+            type="date"
+            value={from}
+            onChange={(e) => setFrom(e.target.value)}
+            className="mt-0.5 rounded-lg border border-stone-300 bg-white px-2 py-1.5 text-sm text-stone-800 outline-none focus:border-orange-400"
+          />
+        </label>
+        <label className="flex flex-col text-xs text-stone-500">
+          希望日(まで)
+          <input
+            type="date"
+            value={to}
+            onChange={(e) => setTo(e.target.value)}
+            className="mt-0.5 rounded-lg border border-stone-300 bg-white px-2 py-1.5 text-sm text-stone-800 outline-none focus:border-orange-400"
+          />
+        </label>
+        <button
+          type="submit"
+          className="rounded-full bg-orange-800 px-4 py-1.5 text-sm font-medium text-orange-50 hover:bg-orange-900"
+        >
+          検索
+        </button>
+        {hasFilters && (
+          <button
+            type="button"
+            onClick={() => {
+              setQ("");
+              setFrom("");
+              setTo("");
+              setApplied({ q: "", from: "", to: "" });
+            }}
+            className="rounded-full border border-stone-300 bg-white px-3 py-1.5 text-sm text-stone-600 hover:border-orange-400"
+          >
+            クリア
+          </button>
+        )}
+      </form>
+
       <div className="mb-4 flex flex-wrap gap-2">
         {FILTERS.map((f) => (
           <button
