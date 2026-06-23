@@ -55,3 +55,10 @@ npm run db:up            # DB起動(スキーマ自動適用済み)
 docker exec -i washoku-db psql -U postgres -d washokumap -f - < db/seed/sample_restaurants.sql
 npm run dev              # http://localhost:3000 → 検索フォームから /search
 
+---
+
+現在DBには合計 212件(バルク200 + サンプル5 + 既存テスト7)が入っています。データは Docker ボリュームに永続化されているので、docker compose up で再開すればそのまま使えます(消えた場合は npm run db:up 後に npm run db:seed)。
+
+▎ 補足:管理画面の一覧・検索・絞り込みや公開検索の「件数が多い状態」での挙動確認に使えます。バルク分だけ消したいときは上記の delete … like 'bbbb0000-%' でOKです。
+
+
