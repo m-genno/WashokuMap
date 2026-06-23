@@ -1,5 +1,10 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { setReservationStatus } from "@/lib/reservations";
+import {
+  enforceRateLimit,
+  requestTooLarge,
+  MAX_JSON_BYTES,
+} from "@/lib/rateLimit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -20,6 +25,12 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
+
+  const limited = enforceRateLimit(req, "respond", { limit: 20, windowMs: 60_000 });
+  if (limited) return limited;
+  if (requestTooLarge(req, MAX_JSON_BYTES)) {
+    return NextResponse.json({ error: "payload_too_large" }, { status: 413 });
+  }
 
   let body: { action?: string };
   try {

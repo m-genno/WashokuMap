@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { searchRestaurants } from "@/lib/restaurants";
+import { enforceRateLimit, clampLen } from "@/lib/rateLimit";
 
 // pg は Node ランタイムが必要(Edge 不可)。毎リクエスト動的実行。
 export const runtime = "nodejs";
@@ -11,6 +12,12 @@ export const dynamic = "force-dynamic";
  * すべて任意。lat/lng が両方あるときだけ地理検索を行う。
  */
 export async function GET(req: NextRequest) {
+  const limited = enforceRateLimit(req, "search", {
+    limit: 60,
+    windowMs: 60_000,
+  });
+  if (limited) return limited;
+
   const sp = req.nextUrl.searchParams;
   const numParam = (key: string): number | undefined => {
     const raw = sp.get(key);
@@ -21,7 +28,7 @@ export async function GET(req: NextRequest) {
 
   try {
     const results = await searchRestaurants({
-      q: sp.get("q") ?? undefined,
+      q: clampLen(sp.get("q") ?? undefined, 200),
       lat: numParam("lat"),
       lng: numParam("lng"),
       radiusM: numParam("radius"),

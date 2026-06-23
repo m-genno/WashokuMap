@@ -12,6 +12,12 @@ import {
   getOrCreateUserByAnonymousId,
 } from "@/lib/users";
 import { translateToJa } from "@/lib/translation";
+import {
+  enforceRateLimit,
+  requestTooLarge,
+  clampLen,
+  MAX_JSON_BYTES,
+} from "@/lib/rateLimit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -64,6 +70,13 @@ export async function POST(
 ) {
   const { id: restaurantId } = await params;
 
+  const limited = enforceRateLimit(req, "reviews", {
+    limit: 10,
+    windowMs: 60_000,
+  });
+  if (limited) return limited;
+  if (requestTooLarge(req, MAX_JSON_BYTES)) return bad("payload_too_large", 413);
+
   let payload: ReviewBody;
   try {
     payload = await req.json();
@@ -79,8 +92,8 @@ export async function POST(
     return bad("invalid_rating");
   }
 
-  const bodyText = payload.body?.trim() || null;
-  const bodyLang = payload.bodyLang?.trim() || "en";
+  const bodyText = clampLen(payload.body?.trim(), 2000) || null;
+  const bodyLang = clampLen(payload.bodyLang?.trim(), 16) || "en";
 
   // 写真は自前のアップロード(/api/uploads/...)のみ許可(外部URL混入を防ぐ)。
   const rawPhotos = Array.isArray(payload.photos) ? payload.photos : [];

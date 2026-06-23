@@ -7,6 +7,12 @@ import {
 } from "@/lib/notifications";
 import { translateToJa } from "@/lib/translation";
 import { getOrCreateUserByAnonymousId } from "@/lib/users";
+import {
+  enforceRateLimit,
+  requestTooLarge,
+  clampLen,
+  MAX_JSON_BYTES,
+} from "@/lib/rateLimit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -35,6 +41,13 @@ function bad(error: string, status = 400) {
  * リクエスト型予約(reservation_mode='request')の店舗にリクエストを作成する。
  */
 export async function POST(req: NextRequest) {
+  const limited = enforceRateLimit(req, "reservations", {
+    limit: 10,
+    windowMs: 60_000,
+  });
+  if (limited) return limited;
+  if (requestTooLarge(req, MAX_JSON_BYTES)) return bad("payload_too_large", 413);
+
   let body: ReservationBody;
   try {
     body = await req.json();
@@ -42,13 +55,14 @@ export async function POST(req: NextRequest) {
     return bad("invalid_json");
   }
 
-  const { restaurantId, desiredAt, guestName, guestLang } = body;
+  const { restaurantId, desiredAt, guestLang } = body;
+  const guestName = clampLen(body.guestName, 100);
   if (!restaurantId || !desiredAt || !guestName) {
     return bad("missing_required_fields");
   }
 
   const partySize = Number(body.partySize);
-  if (!Number.isInteger(partySize) || partySize < 1) {
+  if (!Number.isInteger(partySize) || partySize < 1 || partySize > 100) {
     return bad("invalid_party_size");
   }
 
@@ -64,12 +78,12 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const guestEmail = body.guestEmail?.trim() || null;
-    const guestPhone = body.guestPhone?.trim() || null;
+    const guestEmail = clampLen(body.guestEmail?.trim(), 200) || null;
+    const guestPhone = clampLen(body.guestPhone?.trim(), 40) || null;
     const budgetPerPerson =
       body.budgetPerPerson != null ? Number(body.budgetPerPerson) : null;
-    const requests = body.requests?.trim() || null;
-    const lang = guestLang || "en";
+    const requests = clampLen(body.requests?.trim(), 1000) || null;
+    const lang = clampLen(guestLang, 16) || "en";
 
     // 匿名IDがあれば app_user に紐付ける(後の口コミ投稿資格の判定に使う)。
     const anonymousId = body.anonymousId?.trim() || null;

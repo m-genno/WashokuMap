@@ -2,6 +2,11 @@ import { NextResponse, type NextRequest } from "next/server";
 import { saveImage, MAX_UPLOAD_BYTES } from "@/lib/uploads";
 import { getOrCreateUserByAnonymousId } from "@/lib/users";
 import { isAdminAuthorized } from "@/lib/adminAuth";
+import {
+  enforceRateLimit,
+  requestTooLarge,
+  MAX_UPLOAD_REQUEST_BYTES,
+} from "@/lib/rateLimit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -15,6 +20,18 @@ export const dynamic = "force-dynamic";
  * type(jpeg/png/webp)とサイズ(<=5MB)を検証し、表示用とサムネを生成する。
  */
 export async function POST(req: NextRequest) {
+  // 管理アップロードはレート制限を緩める(編集作業で連続アップロードするため)。
+  const isAdmin = isAdminAuthorized(req);
+  const limited = enforceRateLimit(
+    req,
+    "uploads",
+    isAdmin ? { limit: 60, windowMs: 60_000 } : { limit: 20, windowMs: 60_000 }
+  );
+  if (limited) return limited;
+  if (requestTooLarge(req, MAX_UPLOAD_REQUEST_BYTES)) {
+    return NextResponse.json({ error: "too_large" }, { status: 413 });
+  }
+
   let form: FormData;
   try {
     form = await req.formData();
@@ -23,7 +40,7 @@ export async function POST(req: NextRequest) {
   }
 
   // 管理トークンが無ければ匿名IDでユーザに紐付ける。
-  if (!isAdminAuthorized(req)) {
+  if (!isAdmin) {
     const anonymousId = String(form.get("anonymousId") ?? "").trim();
     if (!anonymousId) {
       return NextResponse.json(

@@ -1,6 +1,11 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { reportReview } from "@/lib/reviews";
 import { getUserIdByAnonymousId } from "@/lib/users";
+import {
+  enforceRateLimit,
+  requestTooLarge,
+  MAX_JSON_BYTES,
+} from "@/lib/rateLimit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -14,6 +19,12 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id: reviewId } = await params;
+
+  const limited = enforceRateLimit(req, "report", { limit: 10, windowMs: 60_000 });
+  if (limited) return limited;
+  if (requestTooLarge(req, MAX_JSON_BYTES)) {
+    return NextResponse.json({ error: "payload_too_large" }, { status: 413 });
+  }
 
   let body: { reason?: string; anonymousId?: string | null };
   try {
