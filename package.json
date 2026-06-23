@@ -11,7 +11,7 @@
     "db:down": "docker compose down",
     "db:reset": "docker compose down -v && docker compose up -d",
     "db:logs": "docker compose logs -f db",
-    "db:seed": "docker exec -i washoku-db psql -U postgres -d washokumap -f - < db/seed/sample_restaurants.sql && docker exec -i washoku-db psql -U postgres -d washokumap -f - < db/seed/bulk_restaurants.sql"
+    "db:seed": "docker exec -i washoku-db psql -U postgres -d washokumap -f - < db/seed/sample_restaurants.sql && docker exec -i washoku-db psql -U postgres -d washokumap -f - < db/seed/bulk_restaurants.sql && docker exec -i washoku-db psql -U postgres -d washokumap -f - < db/seed/bulk_activity.sql"
   },
   "dependencies": {
     "leaflet": "^1.9.4",

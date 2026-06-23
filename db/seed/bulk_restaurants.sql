@@ -57,7 +57,8 @@ select
   (array['request','external','phone_only'])[1 + (n % 3)],
   case when (n % 3) = 1 then 'https://example.com/reserve/bulk-' || n::text else null end,
   1 + (n % 4),
-  (array['published','published','published','draft','closed'])[1 + (n % 5)],
+  -- 状態はジャンル(n%15)と独立にするため n%7 で決める(published寄り)。
+  (array['published','published','published','published','draft','draft','closed'])[1 + (n % 7)],
   'csv'
 from nums
 join g on g.idx = (n % 15)
