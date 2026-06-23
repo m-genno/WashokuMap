@@ -393,6 +393,55 @@ export async function getRestaurantForAdmin(
   return { ...rows[0], photos, hours };
 }
 
+export interface FieldChange {
+  from: unknown;
+  to: unknown;
+}
+
+/**
+ * 編集前後(getRestaurantForAdmin の戻り)を比較し、変更フィールドの from/to を返す。
+ * スカラ値は直接比較、genres は集合比較、photos/hours は件数の変化を記録する。
+ * 監査ログ(before/after 差分)に用いる。
+ */
+export function diffRestaurantAdmin(
+  before: AdminRestaurantDetail,
+  after: AdminRestaurantDetail
+): Record<string, FieldChange> {
+  const changes: Record<string, FieldChange> = {};
+  const scalarKeys: (keyof AdminRestaurantDetail)[] = [
+    "name",
+    "name_en",
+    "description",
+    "address",
+    "lat",
+    "lng",
+    "phone",
+    "website_url",
+    "reservation_mode",
+    "reservation_url",
+    "price_range",
+    "status",
+  ];
+  for (const k of scalarKeys) {
+    const a = before[k] ?? null;
+    const b = after[k] ?? null;
+    if (a !== b) changes[k] = { from: a, to: b };
+  }
+
+  const gb = [...before.genres].sort();
+  const ga = [...after.genres].sort();
+  if (JSON.stringify(gb) !== JSON.stringify(ga)) {
+    changes.genres = { from: gb, to: ga };
+  }
+  if (before.photos.length !== after.photos.length) {
+    changes.photos = { from: before.photos.length, to: after.photos.length };
+  }
+  if (before.hours.length !== after.hours.length) {
+    changes.hours = { from: before.hours.length, to: after.hours.length };
+  }
+  return changes;
+}
+
 export type UpdateRestaurantResult =
   | { ok: true; restaurant: SavedRestaurant }
   | { ok: false; reason: "not_found" | "no_location_for_publish" };

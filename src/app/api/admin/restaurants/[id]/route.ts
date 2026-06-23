@@ -5,6 +5,7 @@ import {
   getRestaurantForAdmin,
   updateRestaurant,
   validateExtras,
+  diffRestaurantAdmin,
   RESTAURANT_STATUSES,
   type RestaurantStatus,
   type RestaurantInput,
@@ -88,6 +89,9 @@ export async function PUT(
   }
 
   try {
+    // 監査の before/after 差分用に編集前の状態を取得。
+    const before = await getRestaurantForAdmin(id);
+
     const result = await updateRestaurant(id, body);
     if (!result.ok) {
       if (result.reason === "not_found") {
@@ -98,12 +102,19 @@ export async function PUT(
         { status: 400 }
       );
     }
+
+    const after = await getRestaurantForAdmin(id);
+    const changes = before && after ? diffRestaurantAdmin(before, after) : {};
+    const changedFields = Object.keys(changes);
     await recordAdminAudit({
       action: "restaurant.update",
       targetType: "restaurant",
       targetId: id,
-      summary: `編集: ${body.name}`,
-      detail: { status: body.status ?? "draft" },
+      summary:
+        changedFields.length > 0
+          ? `編集: ${body.name}(${changedFields.length}項目変更)`
+          : `編集: ${body.name}(変更なし)`,
+      detail: { status: body.status ?? "draft", changes },
       actor: adminActor(req),
     });
     return NextResponse.json({ restaurant: result.restaurant });
