@@ -76,11 +76,20 @@ export default function AdminHome() {
           </Link>
           <Link
             href="/admin/audit"
-            className="rounded-2xl border border-stone-200 bg-white p-5 shadow-sm hover:border-orange-300 sm:col-span-2"
+            className="rounded-2xl border border-stone-200 bg-white p-5 shadow-sm hover:border-orange-300"
           >
             <h2 className="font-semibold">操作ログ</h2>
             <p className="mt-1 text-sm text-stone-600">
               管理操作(登録・編集・状態変更・取込・予約/口コミ対応)の履歴を確認。
+            </p>
+          </Link>
+          <Link
+            href="/admin/maintenance"
+            className="rounded-2xl border border-stone-200 bg-white p-5 shadow-sm hover:border-orange-300"
+          >
+            <h2 className="font-semibold">メンテナンス</h2>
+            <p className="mt-1 text-sm text-stone-600">
+              孤立アップロード画像(未参照)の確認・削除でストレージを整理。
             </p>
           </Link>
         </div>

@@ -23,6 +23,7 @@ const ACTION_LABEL: Record<string, string> = {
   "restaurant.import": "CSV取込",
   "reservation.status": "予約対応",
   "review.moderate": "口コミ対応",
+  "uploads.cleanup": "画像整理",
 };
 
 const ACTION_BADGE: Record<string, string> = {
@@ -32,6 +33,7 @@ const ACTION_BADGE: Record<string, string> = {
   "restaurant.import": "bg-violet-100 text-violet-800",
   "reservation.status": "bg-orange-100 text-orange-800",
   "review.moderate": "bg-rose-100 text-rose-800",
+  "uploads.cleanup": "bg-stone-200 text-stone-700",
 };
 
 const FILTERS: { key: string; label: string }[] = [
