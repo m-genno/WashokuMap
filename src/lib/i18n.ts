@@ -116,6 +116,9 @@ const ja: Dict = {
     "該当する和食店が見つかりませんでした。別のキーワードでお試しください。",
   "results.detail": "詳細・予約 →",
   "results.reservationLabel": "予約",
+  "results.reviewsLoading": "口コミを読み込み中…",
+  "results.reviewsError": "口コミを取得できませんでした。",
+  "results.reviewsAll": "口コミをすべて見る →",
 
   "resv.request": "リクエスト予約",
   "resv.external": "公式サイト予約",
@@ -130,6 +133,9 @@ const ja: Dict = {
   "detail.sectionIntro": "紹介",
   "detail.sectionHours": "営業時間",
   "detail.sectionAccess": "アクセス",
+  "detail.sectionPhone": "電話番号",
+  "detail.phoneDesktopNote":
+    "電話の発信はスマートフォンなどのモバイル端末からご利用ください。",
   "detail.sectionReviews": "口コミ",
   "detail.noLocation": "位置情報は未登録です。",
   "detail.noReviews": "まだ口コミがありません。予約・来店された方が投稿できます。",
@@ -283,6 +289,9 @@ const en: Dict = {
     "No matching washoku restaurants found. Try a different keyword.",
   "results.detail": "Details & reserve →",
   "results.reservationLabel": "Reservation",
+  "results.reviewsLoading": "Loading reviews…",
+  "results.reviewsError": "Couldn't load reviews.",
+  "results.reviewsAll": "See all reviews →",
 
   "resv.request": "Request booking",
   "resv.external": "Official site",
@@ -297,6 +306,9 @@ const en: Dict = {
   "detail.sectionIntro": "About",
   "detail.sectionHours": "Hours",
   "detail.sectionAccess": "Access",
+  "detail.sectionPhone": "Phone",
+  "detail.phoneDesktopNote":
+    "Calls can be made from a smartphone or other mobile device.",
   "detail.sectionReviews": "Reviews",
   "detail.noLocation": "Location not registered.",
   "detail.noReviews":
@@ -449,6 +461,9 @@ const zhHans: Dict = {
   "results.empty": "未找到符合的和食餐厅。请尝试其他关键词。",
   "results.detail": "详情・预订 →",
   "results.reservationLabel": "预订",
+  "results.reviewsLoading": "正在加载评价…",
+  "results.reviewsError": "无法获取评价。",
+  "results.reviewsAll": "查看全部评价 →",
 
   "resv.request": "申请预订",
   "resv.external": "官方网站",
@@ -462,6 +477,8 @@ const zhHans: Dict = {
   "detail.sectionIntro": "介绍",
   "detail.sectionHours": "营业时间",
   "detail.sectionAccess": "交通",
+  "detail.sectionPhone": "电话号码",
+  "detail.phoneDesktopNote": "请使用智能手机等移动设备拨打电话。",
   "detail.sectionReviews": "评价",
   "detail.noLocation": "未登记位置信息。",
   "detail.noReviews": "暂无评价。预订或到店的客人可以发表。",
@@ -604,6 +621,9 @@ const zhHant: Dict = {
   "results.empty": "找不到符合的和食餐廳。請嘗試其他關鍵字。",
   "results.detail": "詳情・預訂 →",
   "results.reservationLabel": "預訂",
+  "results.reviewsLoading": "正在載入評價…",
+  "results.reviewsError": "無法取得評價。",
+  "results.reviewsAll": "查看全部評價 →",
 
   "resv.request": "申請預訂",
   "resv.external": "官方網站",
@@ -617,6 +637,8 @@ const zhHant: Dict = {
   "detail.sectionIntro": "介紹",
   "detail.sectionHours": "營業時間",
   "detail.sectionAccess": "交通",
+  "detail.sectionPhone": "電話號碼",
+  "detail.phoneDesktopNote": "請使用智慧型手機等行動裝置撥打電話。",
   "detail.sectionReviews": "評價",
   "detail.noLocation": "未登記位置資訊。",
   "detail.noReviews": "尚無評價。預訂或到店的客人可以發表。",
@@ -761,6 +783,9 @@ const ko: Dict = {
   "results.empty": "해당하는 일식당을 찾지 못했습니다. 다른 키워드로 시도해 보세요.",
   "results.detail": "상세・예약 →",
   "results.reservationLabel": "예약",
+  "results.reviewsLoading": "리뷰를 불러오는 중…",
+  "results.reviewsError": "리뷰를 불러오지 못했습니다.",
+  "results.reviewsAll": "리뷰 전체 보기 →",
 
   "resv.request": "요청 예약",
   "resv.external": "공식 사이트",
@@ -775,6 +800,9 @@ const ko: Dict = {
   "detail.sectionIntro": "소개",
   "detail.sectionHours": "영업시간",
   "detail.sectionAccess": "오시는 길",
+  "detail.sectionPhone": "전화번호",
+  "detail.phoneDesktopNote":
+    "전화 발신은 스마트폰 등 모바일 기기에서 이용해 주세요.",
   "detail.sectionReviews": "리뷰",
   "detail.noLocation": "위치 정보가 등록되지 않았습니다.",
   "detail.noReviews": "아직 리뷰가 없습니다. 예약・방문하신 분이 작성할 수 있습니다.",

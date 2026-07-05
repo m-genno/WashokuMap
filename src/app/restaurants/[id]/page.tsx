@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import {
@@ -57,6 +58,10 @@ export default async function RestaurantPage({
 
   const locale = await getLocale();
   const t = translator(locale);
+  const userAgent = (await headers()).get("user-agent") ?? "";
+  const isMobile = /Android|iPhone|iPad|iPod|Windows Phone|Mobile/i.test(
+    userAgent
+  );
   const displayName = pickTranslation(r.name_translations, locale, r.name);
   const displayDescription = r.description
     ? pickTranslation(r.description_translations, locale, r.description)
@@ -122,9 +127,13 @@ export default async function RestaurantPage({
             <h1 className="text-2xl font-bold">{displayName}</h1>
             <div className="flex shrink-0 items-center gap-3 pt-1">
               {r.rating_count > 0 && (
-                <span className="text-amber-600">
+                <a
+                  href="#reviews"
+                  className="text-amber-600 hover:underline"
+                  title={t("detail.sectionReviews")}
+                >
                   ★ {r.rating_avg.toFixed(1)}（{r.rating_count}）
-                </span>
+                </a>
               )}
               <FavoriteButton
                 locale={locale}
@@ -163,6 +172,7 @@ export default async function RestaurantPage({
           reservationUrl={r.reservation_url}
           phone={r.phone}
           id={r.id}
+          isMobile={isMobile}
           t={t}
         />
 
@@ -205,6 +215,23 @@ export default async function RestaurantPage({
           </section>
         )}
 
+        {/* 電話番号 */}
+        {r.phone && (
+          <section className="mb-6">
+            <h2 className="mb-1 font-semibold">{t("detail.sectionPhone")}</h2>
+            {isMobile ? (
+              <a
+                href={`tel:${r.phone}`}
+                className="text-stone-700 underline underline-offset-2"
+              >
+                {r.phone}
+              </a>
+            ) : (
+              <p className="text-stone-700">{r.phone}</p>
+            )}
+          </section>
+        )}
+
         {/* 地図・住所 */}
         <section className="mb-6">
           <h2 className="mb-2 font-semibold">{t("detail.sectionAccess")}</h2>
@@ -219,7 +246,7 @@ export default async function RestaurantPage({
         </section>
 
         {/* 口コミ */}
-        <section className="mb-10">
+        <section id="reviews" className="mb-10 scroll-mt-20">
           <h2 className="mb-2 font-semibold">
             {t("detail.sectionReviews")}{" "}
             {r.reviews.length > 0 && `(${r.reviews.length})`}
@@ -299,18 +326,27 @@ function ReservationPanel({
   reservationUrl,
   phone,
   id,
+  isMobile,
   t,
 }: {
   mode: "request" | "external" | "phone_only";
   reservationUrl: string | null;
   phone: string | null;
   id: string;
+  isMobile: boolean;
   t: TFn;
 }) {
   const primaryClass =
     "inline-flex items-center justify-center rounded-full bg-orange-800 px-6 py-3 font-medium text-orange-50 hover:bg-orange-900";
   const secondaryClass =
     "inline-flex items-center justify-center rounded-full border border-orange-300 px-6 py-3 font-medium text-orange-900 hover:bg-orange-100";
+  // PC では tel: が使えないため押せない見た目にする
+  const primaryDisabledClass =
+    "inline-flex cursor-not-allowed items-center justify-center rounded-full bg-orange-800 px-6 py-3 font-medium text-orange-50 opacity-50";
+  const secondaryDisabledClass =
+    "inline-flex cursor-not-allowed items-center justify-center rounded-full border border-orange-300 px-6 py-3 font-medium text-orange-900 opacity-50";
+
+  const showDesktopNote = !isMobile && phone != null && mode !== "external";
 
   return (
     <section className="mb-6 rounded-2xl border border-orange-100 bg-white p-4">
@@ -325,9 +361,15 @@ function ReservationPanel({
         </a>
       ) : mode === "phone_only" ? (
         phone ? (
-          <a href={`tel:${phone}`} className={primaryClass}>
-            {t("detail.reservePhone", { phone })}
-          </a>
+          isMobile ? (
+            <a href={`tel:${phone}`} className={primaryClass}>
+              {t("detail.reservePhone", { phone })}
+            </a>
+          ) : (
+            <span aria-disabled="true" className={primaryDisabledClass}>
+              {t("detail.reservePhone", { phone })}
+            </span>
+          )
         ) : (
           <p className="text-sm text-stone-500">
             {t("detail.phoneOnlyNoPhone")}
@@ -339,12 +381,22 @@ function ReservationPanel({
           <Link href={`/restaurants/${id}/reserve`} className={primaryClass}>
             {t("detail.reserveRequest")}
           </Link>
-          {phone && (
-            <a href={`tel:${phone}`} className={secondaryClass}>
-              {t("detail.phoneInquiry")}
-            </a>
-          )}
+          {phone &&
+            (isMobile ? (
+              <a href={`tel:${phone}`} className={secondaryClass}>
+                {t("detail.phoneInquiry")}
+              </a>
+            ) : (
+              <span aria-disabled="true" className={secondaryDisabledClass}>
+                {t("detail.phoneInquiry")}
+              </span>
+            ))}
         </div>
+      )}
+      {showDesktopNote && (
+        <p className="mt-2 text-xs text-stone-500">
+          {t("detail.phoneDesktopNote")}
+        </p>
       )}
     </section>
   );

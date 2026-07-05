@@ -71,6 +71,45 @@ export async function getReviewContext(
   };
 }
 
+/** 検索結果の口コミプレビュー1件分。 */
+export interface RecentReview {
+  id: string;
+  rating: number;
+  body: string | null;
+  body_lang: string;
+  body_translations: Record<string, string>;
+  created_at: string;
+  photos: ReviewPhoto[];
+}
+
+/**
+ * ある店舗の公開中の口コミを新しい順に返す(検索結果のプレビュー用)。
+ * 不正なIDは空配列。
+ */
+export async function listRecentReviews(
+  restaurantId: string,
+  limit = 5
+): Promise<RecentReview[]> {
+  if (!UUID_RE.test(restaurantId)) return [];
+  const capped = Math.min(Math.max(limit, 1), 20);
+  return query<RecentReview>(
+    `SELECT rv.id, rv.rating, rv.body, rv.body_lang, rv.body_translations,
+            rv.created_at,
+            COALESCE(
+              (SELECT json_agg(
+                        json_build_object('url', rp.url, 'thumbUrl', rp.thumb_url)
+                        ORDER BY rp.sort_order)
+               FROM review_photo rp WHERE rp.review_id = rv.id),
+              '[]'
+            ) AS photos
+     FROM review rv
+     WHERE rv.restaurant_id = $1 AND rv.status = 'published'
+     ORDER BY rv.created_at DESC
+     LIMIT $2`,
+    [restaurantId, capped]
+  );
+}
+
 export interface UpsertReviewInput {
   restaurantId: string;
   userId: string;
