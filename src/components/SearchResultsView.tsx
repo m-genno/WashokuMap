@@ -117,7 +117,19 @@ export default function SearchResultsView({
 
       {/* 一覧 */}
       <div>
-        <ul className="flex flex-col gap-3 p-4">
+        <Pagination
+          page={page}
+          perPage={perPage}
+          total={total}
+          onPageChange={goToPage}
+          prevLabel={t("pager.prev")}
+          nextLabel={t("pager.next")}
+          rangeLabel={(start, end, tot) =>
+            t("pager.range", { start, end, total: tot })
+          }
+          className="px-4 pt-4"
+        />
+        <ul className="flex flex-col gap-3 px-4 pb-4 pt-3">
         {results.map((r) => {
           const selected = r.id === selectedId;
           const displayName = pickTranslation(r.name_translations, locale, r.name);
