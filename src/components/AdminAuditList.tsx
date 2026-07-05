@@ -3,6 +3,10 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { adminHeaders } from "@/lib/adminClient";
+import Pagination from "./Pagination";
+
+/** 操作履歴のため表示量は多め(1ページ100件)。 */
+const PER_PAGE = 100;
 
 interface Row {
   id: string;
@@ -111,11 +115,23 @@ function targetLink(r: Row): string | null {
 
 export default function AdminAuditList() {
   const [filter, setFilter] = useState("all");
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [reloadKey, setReloadKey] = useState(0);
   const reload = () => setReloadKey((k) => k + 1);
+
+  const changeFilter = (key: string) => {
+    setFilter(key);
+    setPage(1);
+  };
+
+  const changePage = (p: number) => {
+    setPage(p);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -123,13 +139,15 @@ export default function AdminAuditList() {
       setLoading(true);
       setError("");
       try {
-        const res = await fetch(`/api/admin/audit?action=${filter}`, {
-          headers: adminHeaders(),
-        });
+        const res = await fetch(
+          `/api/admin/audit?action=${filter}&page=${page}&perPage=${PER_PAGE}`,
+          { headers: adminHeaders() }
+        );
         if (cancelled) return;
         if (res.status === 401) {
           setError("認証が必要です。上のトークンを入力してください。");
           setRows([]);
+          setTotal(0);
           return;
         }
         const data = await res.json();
@@ -137,13 +155,22 @@ export default function AdminAuditList() {
         if (!res.ok) {
           setError(`取得に失敗しました: ${data.error ?? "unknown"}`);
           setRows([]);
+          setTotal(0);
+          return;
+        }
+        // 再読み込みで件数が減り現在ページが範囲外になったら最終ページへ寄せる。
+        const lastPage = Math.max(1, Math.ceil((data.total ?? 0) / PER_PAGE));
+        if (page > lastPage) {
+          setPage(lastPage);
           return;
         }
         setRows(data.entries);
+        setTotal(data.total ?? data.entries.length);
       } catch {
         if (!cancelled) {
           setError("通信エラー");
           setRows([]);
+          setTotal(0);
         }
       } finally {
         if (!cancelled) setLoading(false);
@@ -153,7 +180,7 @@ export default function AdminAuditList() {
     return () => {
       cancelled = true;
     };
-  }, [filter, reloadKey]);
+  }, [filter, page, reloadKey]);
 
   return (
     <div>
@@ -162,7 +189,7 @@ export default function AdminAuditList() {
           <button
             key={f.key}
             type="button"
-            onClick={() => setFilter(f.key)}
+            onClick={() => changeFilter(f.key)}
             className={`rounded-full border px-3 py-1 text-sm font-medium transition-colors ${
               filter === f.key
                 ? "border-orange-800 bg-orange-800 text-orange-50"
@@ -194,6 +221,15 @@ export default function AdminAuditList() {
           記録がありません。
         </p>
       ) : (
+        <>
+        <Pagination
+          page={page}
+          perPage={PER_PAGE}
+          total={total}
+          onPageChange={changePage}
+          disabled={loading}
+          className="mb-3"
+        />
         <ul className="flex flex-col gap-2">
           {rows.map((r) => {
             const link = targetLink(r);
@@ -253,6 +289,15 @@ export default function AdminAuditList() {
             );
           })}
         </ul>
+        <Pagination
+          page={page}
+          perPage={PER_PAGE}
+          total={total}
+          onPageChange={changePage}
+          disabled={loading}
+          className="mt-3"
+        />
+        </>
       )}
     </div>
   );

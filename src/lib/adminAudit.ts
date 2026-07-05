@@ -74,19 +74,35 @@ export interface AdminAuditRow {
   created_at: string;
 }
 
-/** 監査ログ一覧(新しい順)。action 指定で絞り込み。 */
+export interface AdminAuditList {
+  entries: AdminAuditRow[];
+  /** 絞り込み後の総件数(ページング用) */
+  total: number;
+}
+
+/** 監査ログ一覧(新しい順)。action 指定で絞り込み、offset/limit でページング。 */
 export async function listAdminAudit(opts: {
   action?: string | null;
   limit?: number;
-}): Promise<AdminAuditRow[]> {
+  offset?: number;
+}): Promise<AdminAuditList> {
   const action = opts.action?.trim() || null;
   const limit = Math.min(Math.max(opts.limit ?? 100, 1), 500);
-  return query<AdminAuditRow>(
-    `SELECT id, action, target_type, target_id, summary, detail, actor, ip, created_at
-     FROM admin_audit_log
-     WHERE ($1::text IS NULL OR action = $1)
-     ORDER BY created_at DESC
-     LIMIT $2`,
-    [action, limit]
-  );
+  const offset = Math.max(opts.offset ?? 0, 0);
+  const [entries, totals] = await Promise.all([
+    query<AdminAuditRow>(
+      `SELECT id, action, target_type, target_id, summary, detail, actor, ip, created_at
+       FROM admin_audit_log
+       WHERE ($1::text IS NULL OR action = $1)
+       ORDER BY created_at DESC
+       LIMIT $2 OFFSET $3`,
+      [action, limit, offset]
+    ),
+    query<{ total: number }>(
+      `SELECT count(*)::int AS total FROM admin_audit_log
+       WHERE ($1::text IS NULL OR action = $1)`,
+      [action]
+    ),
+  ]);
+  return { entries, total: totals[0]?.total ?? 0 };
 }
