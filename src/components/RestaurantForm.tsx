@@ -109,7 +109,15 @@ const EMPTY: Initial = {
 type State =
   | { kind: "idle" }
   | { kind: "submitting" }
-  | { kind: "success"; id: string; lat: number | null; lng: number | null; geocoded: boolean }
+  | {
+      kind: "success";
+      id: string;
+      lat: number | null;
+      lng: number | null;
+      geocoded: boolean;
+      /** 保存時に指定した公開状態(公開ページへのリンク表示の判定に使う) */
+      status: string;
+    }
   | { kind: "error"; message: string };
 
 const label = "block text-sm font-medium text-stone-700";
@@ -274,7 +282,7 @@ export default function RestaurantForm({
         });
         return;
       }
-      setState({ kind: "success", ...data.restaurant });
+      setState({ kind: "success", ...data.restaurant, status: payload.status });
     } catch {
       setState({ kind: "error", message: ERROR_LABELS.network_error });
     }
@@ -309,9 +317,17 @@ export default function RestaurantForm({
             : "未取得(住所から特定できませんでした。緯度経度を手動設定してください)"}
         </p>
         <div className="mt-3 flex flex-wrap gap-3">
-          <Link href={`/restaurants/${state.id}`} className="text-emerald-900 underline">
-            店舗ページを見る
-          </Link>
+          {/* 公開ページは published のみ存在するため、非公開時はリンクを出さない(404対策) */}
+          {state.status === "published" ? (
+            <Link href={`/restaurants/${state.id}`} className="text-emerald-900 underline">
+              店舗ページを見る
+            </Link>
+          ) : (
+            <span className="text-emerald-800/70">
+              店舗ページは{state.status === "draft" ? "下書き" : "休止中"}
+              のため公開されていません
+            </span>
+          )}
           <Link href="/admin/restaurants" className="text-emerald-900 underline">
             一覧へ戻る
           </Link>
