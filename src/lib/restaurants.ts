@@ -195,8 +195,12 @@ export interface RestaurantDetail {
   reviews: RestaurantReview[];
 }
 
+/** 詳細画面の口コミ1ページ件数(reviews には1ページ目のみ載せる)。 */
+export const DETAIL_REVIEWS_PER_PAGE = 10;
+
 /**
  * 公開店舗(status='published')の詳細を、ジャンル/写真/営業時間/口コミ込みで取得。
+ * 口コミは最新順の1ページ目(DETAIL_REVIEWS_PER_PAGE 件)のみ。総件数は rating_count。
  * 見つからない・非公開・不正なIDの場合は null。
  */
 export async function getRestaurantById(
@@ -247,7 +251,7 @@ export async function getRestaurantById(
               ) AS photos
        FROM review rv
        WHERE rv.restaurant_id = $1 AND rv.status = 'published'
-       ORDER BY rv.created_at DESC LIMIT 20`,
+       ORDER BY rv.created_at DESC LIMIT ${DETAIL_REVIEWS_PER_PAGE}`,
       [id]
     ),
   ]);

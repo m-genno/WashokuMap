@@ -71,7 +71,7 @@ export async function getReviewContext(
   };
 }
 
-/** 検索結果の口コミプレビュー1件分。 */
+/** 公開中の口コミ1件分(検索結果プレビュー・詳細画面のページングで使用)。 */
 export interface RecentReview {
   id: string;
   rating: number;
@@ -82,32 +82,48 @@ export interface RecentReview {
   photos: ReviewPhoto[];
 }
 
+export interface RecentReviewList {
+  reviews: RecentReview[];
+  /** 公開中の口コミ総件数(ページング用) */
+  total: number;
+}
+
 /**
- * ある店舗の公開中の口コミを新しい順に返す(検索結果のプレビュー用)。
- * 不正なIDは空配列。
+ * ある店舗の公開中の口コミを新しい順に返す
+ * (検索結果のプレビューと詳細画面の口コミページングで使用)。
+ * offset/limit でページングし、総件数も返す。不正なIDは0件。
  */
 export async function listRecentReviews(
   restaurantId: string,
-  limit = 5
-): Promise<RecentReview[]> {
-  if (!UUID_RE.test(restaurantId)) return [];
-  const capped = Math.min(Math.max(limit, 1), 20);
-  return query<RecentReview>(
-    `SELECT rv.id, rv.rating, rv.body, rv.body_lang, rv.body_translations,
-            rv.created_at,
-            COALESCE(
-              (SELECT json_agg(
-                        json_build_object('url', rp.url, 'thumbUrl', rp.thumb_url)
-                        ORDER BY rp.sort_order)
-               FROM review_photo rp WHERE rp.review_id = rv.id),
-              '[]'
-            ) AS photos
-     FROM review rv
-     WHERE rv.restaurant_id = $1 AND rv.status = 'published'
-     ORDER BY rv.created_at DESC
-     LIMIT $2`,
-    [restaurantId, capped]
-  );
+  opts: { limit?: number; offset?: number } = {}
+): Promise<RecentReviewList> {
+  if (!UUID_RE.test(restaurantId)) return { reviews: [], total: 0 };
+  const limit = Math.min(Math.max(opts.limit ?? 5, 1), 20);
+  const offset = Math.max(opts.offset ?? 0, 0);
+  const [reviews, totals] = await Promise.all([
+    query<RecentReview>(
+      `SELECT rv.id, rv.rating, rv.body, rv.body_lang, rv.body_translations,
+              rv.created_at,
+              COALESCE(
+                (SELECT json_agg(
+                          json_build_object('url', rp.url, 'thumbUrl', rp.thumb_url)
+                          ORDER BY rp.sort_order)
+                 FROM review_photo rp WHERE rp.review_id = rv.id),
+                '[]'
+              ) AS photos
+       FROM review rv
+       WHERE rv.restaurant_id = $1 AND rv.status = 'published'
+       ORDER BY rv.created_at DESC
+       LIMIT $2 OFFSET $3`,
+      [restaurantId, limit, offset]
+    ),
+    query<{ total: number }>(
+      `SELECT count(*)::int AS total FROM review
+       WHERE restaurant_id = $1 AND status = 'published'`,
+      [restaurantId]
+    ),
+  ]);
+  return { reviews, total: totals[0]?.total ?? 0 };
 }
 
 export interface UpsertReviewInput {

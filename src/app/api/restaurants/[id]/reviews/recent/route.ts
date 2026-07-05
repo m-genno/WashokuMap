@@ -6,8 +6,9 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 /**
- * GET /api/restaurants/[id]/reviews/recent
- * 検索結果の口コミプレビュー用に、公開中の最新口コミ(最大5件)を返す。
+ * GET /api/restaurants/[id]/reviews/recent?page=1&perPage=5
+ * 公開中の口コミを新しい順に返す(検索結果プレビュー・詳細画面のページング用)。
+ * page は1始まり、perPage 既定5・最大20。total で総件数を返す。
  */
 export async function GET(
   req: NextRequest,
@@ -19,10 +20,29 @@ export async function GET(
   });
   if (limited) return limited;
 
+  const sp = req.nextUrl.searchParams;
+  const pageRaw = Number(sp.get("page"));
+  const perPageRaw = Number(sp.get("perPage"));
+  const page =
+    Number.isFinite(pageRaw) && pageRaw >= 1 ? Math.floor(pageRaw) : 1;
+  const perPage =
+    Number.isFinite(perPageRaw) && perPageRaw >= 1
+      ? Math.min(Math.floor(perPageRaw), 20)
+      : 5;
+
   const { id } = await params;
   try {
-    const reviews = await listRecentReviews(id, 5);
-    return NextResponse.json({ reviews });
+    const { reviews, total } = await listRecentReviews(id, {
+      limit: perPage,
+      offset: (page - 1) * perPage,
+    });
+    return NextResponse.json({
+      count: reviews.length,
+      total,
+      page,
+      perPage,
+      reviews,
+    });
   } catch (err) {
     console.error("recent reviews failed:", err);
     return NextResponse.json({ error: "reviews_failed" }, { status: 500 });

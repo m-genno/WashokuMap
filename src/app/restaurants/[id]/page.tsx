@@ -4,12 +4,13 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import {
   getRestaurantById,
+  DETAIL_REVIEWS_PER_PAGE,
   type RestaurantHours,
 } from "@/lib/restaurants";
 import DetailMap from "@/components/DetailMap";
 import FavoriteButton from "@/components/FavoriteButton";
 import ReviewForm from "@/components/ReviewForm";
-import ReportReviewButton from "@/components/ReportReviewButton";
+import RestaurantReviewList from "@/components/RestaurantReviewList";
 import LocaleSwitcher from "@/components/LocaleSwitcher";
 import { getLocale } from "@/lib/serverLocale";
 import { translator, pickTranslation, type TFn } from "@/lib/i18n";
@@ -249,7 +250,7 @@ export default async function RestaurantPage({
         <section id="reviews" className="mb-10 scroll-mt-20">
           <h2 className="mb-2 font-semibold">
             {t("detail.sectionReviews")}{" "}
-            {r.reviews.length > 0 && `(${r.reviews.length})`}
+            {r.rating_count > 0 && `(${r.rating_count})`}
           </h2>
 
           {/* 投稿フォーム(予約実績のある匿名ユーザのみ表示) */}
@@ -260,60 +261,13 @@ export default async function RestaurantPage({
           {r.reviews.length === 0 ? (
             <p className="text-sm text-stone-500">{t("detail.noReviews")}</p>
           ) : (
-            <ul className="flex flex-col gap-3">
-              {r.reviews.map((rv) => (
-                <li
-                  key={rv.id}
-                  className="rounded-xl border border-orange-100 bg-white p-3"
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="text-amber-600">
-                      {"★".repeat(rv.rating)}
-                      <span className="text-stone-300">
-                        {"★".repeat(5 - rv.rating)}
-                      </span>
-                    </span>
-                    <span className="text-xs text-stone-400">
-                      {new Date(rv.created_at).toLocaleDateString("ja-JP")}
-                    </span>
-                  </div>
-                  {rv.body && (
-                    <p className="mt-1 text-sm text-stone-700">{rv.body}</p>
-                  )}
-                  {locale === "ja" &&
-                    rv.body_lang !== "ja" &&
-                    rv.body_translations?.ja && (
-                      <p className="mt-1 border-l-2 border-orange-100 pl-2 text-sm text-stone-500">
-                        {t("detail.translated")}
-                        {rv.body_translations.ja}
-                      </p>
-                    )}
-                  {rv.photos.length > 0 && (
-                    <div className="mt-2 flex flex-wrap gap-2">
-                      {rv.photos.map((ph) => (
-                        <a
-                          key={ph.url}
-                          href={ph.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                        >
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img
-                            src={ph.thumbUrl ?? ph.url}
-                            alt=""
-                            loading="lazy"
-                            className="h-20 w-20 rounded-lg object-cover hover:opacity-90"
-                          />
-                        </a>
-                      ))}
-                    </div>
-                  )}
-                  <div className="mt-2 flex justify-end">
-                    <ReportReviewButton reviewId={rv.id} locale={locale} />
-                  </div>
-                </li>
-              ))}
-            </ul>
+            <RestaurantReviewList
+              restaurantId={r.id}
+              locale={locale}
+              initialReviews={r.reviews}
+              total={r.rating_count}
+              perPage={DETAIL_REVIEWS_PER_PAGE}
+            />
           )}
         </section>
       </main>
