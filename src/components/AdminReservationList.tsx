@@ -37,8 +37,11 @@ interface Row {
 
 const FILTERS: { key: string; label: string }[] = [
   { key: "requested", label: "未対応" },
+  { key: "counter_offer", label: "代替提案" },
   { key: "confirmed", label: "確定" },
   { key: "completed", label: "完了" },
+  { key: "declined", label: "お断り" },
+  { key: "cancelled", label: "キャンセル" },
   { key: "all", label: "すべて" },
 ];
 
@@ -61,6 +64,13 @@ const STATUS_BADGE: Record<Status, string> = {
   no_show: "bg-red-100 text-red-700",
 };
 
+// 誤操作の取り消し用(通知なし)。控えめな見た目にする。
+const REVERT_ACTION = {
+  to: "requested" as Status,
+  label: "未対応に戻す",
+  style: "border border-stone-300 text-stone-500 hover:border-stone-400",
+};
+
 // デスクが押せる遷移(サーバ側 ALLOWED_TRANSITIONS と一致)。
 const ACTIONS: Record<Status, { to: Status; label: string; style: string }[]> = {
   requested: [
@@ -73,14 +83,16 @@ const ACTIONS: Record<Status, { to: Status; label: string; style: string }[]> = 
     { to: "confirmed", label: "確定する", style: "bg-emerald-700 text-emerald-50 hover:bg-emerald-800" },
     { to: "declined", label: "お断り", style: "border border-stone-300 text-stone-700 hover:border-stone-400" },
     { to: "cancelled", label: "キャンセル", style: "border border-stone-300 text-stone-600 hover:border-stone-400" },
+    REVERT_ACTION,
   ],
   confirmed: [
     { to: "completed", label: "来店済み", style: "bg-emerald-700 text-emerald-50 hover:bg-emerald-800" },
     { to: "no_show", label: "No-show", style: "border border-red-300 text-red-700 hover:bg-red-50" },
     { to: "cancelled", label: "キャンセル", style: "border border-stone-300 text-stone-600 hover:border-stone-400" },
+    REVERT_ACTION,
   ],
-  declined: [],
-  cancelled: [],
+  declined: [REVERT_ACTION],
+  cancelled: [REVERT_ACTION],
   completed: [],
   no_show: [],
 };
@@ -276,6 +288,39 @@ export default function AdminReservationList() {
           </button>
         )}
       </form>
+
+      {/* ステータスの説明(意味が分かりにくいものを補足) */}
+      <details className="mb-3 rounded-lg border border-stone-200 bg-white px-3 py-2">
+        <summary className="cursor-pointer text-sm font-medium text-stone-700">
+          ステータスの説明
+        </summary>
+        <dl className="mt-2 flex flex-col gap-1.5 text-xs text-stone-600">
+          <div>
+            <dt className="inline font-medium text-blue-800">代替提案: </dt>
+            <dd className="inline">
+              希望日時に添えないため別の日時を提案し、お客様の回答を待っている状態。提案時にお客様へ自動メールが送られ、お客様は予約状況ページで「承諾(→確定)/お断り(→キャンセル)」を回答できます。
+            </dd>
+          </div>
+          <div>
+            <dt className="inline font-medium text-stone-700">お断り: </dt>
+            <dd className="inline">
+              満席・店舗都合などで予約をお受けできない場合の対応。お客様へ自動メールが送られます。
+            </dd>
+          </div>
+          <div>
+            <dt className="inline font-medium text-stone-700">キャンセル: </dt>
+            <dd className="inline">
+              お客様都合・連絡不能などによる予約の取り消し。お客様へ自動メールが送られます。
+            </dd>
+          </div>
+          <div>
+            <dt className="inline font-medium text-stone-500">未対応に戻す: </dt>
+            <dd className="inline">
+              誤って状態を変えてしまった場合に「未対応」へ戻します(お客様への通知はありません)。
+            </dd>
+          </div>
+        </dl>
+      </details>
 
       <div className="mb-4 flex flex-wrap gap-2">
         {FILTERS.map((f) => (

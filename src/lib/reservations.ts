@@ -115,13 +115,15 @@ export const RESERVATION_STATUSES = [
 export type ReservationStatusValue = (typeof RESERVATION_STATUSES)[number];
 
 /** 予約デスクが許可する状態遷移。空配列＝終端(以後は変更不可)。 */
+// 「requested に戻す」は誤操作の取り消し用(お客様への通知は行われない)。
+// 完了/No-show は来店実績に関わるため終端のまま。
 const ALLOWED_TRANSITIONS: Record<ReservationStatusValue, ReservationStatusValue[]> =
   {
     requested: ["confirmed", "declined", "counter_offer", "cancelled"],
-    counter_offer: ["confirmed", "declined", "cancelled"],
-    confirmed: ["completed", "no_show", "cancelled"],
-    declined: [],
-    cancelled: [],
+    counter_offer: ["confirmed", "declined", "cancelled", "requested"],
+    confirmed: ["completed", "no_show", "cancelled", "requested"],
+    declined: ["requested"],
+    cancelled: ["requested"],
     completed: [],
     no_show: [],
   };
