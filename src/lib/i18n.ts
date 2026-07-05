@@ -119,6 +119,9 @@ const ja: Dict = {
   "results.reviewsLoading": "口コミを読み込み中…",
   "results.reviewsError": "口コミを取得できませんでした。",
   "results.reviewsAll": "口コミをすべて見る →",
+  "pager.prev": "← 前へ",
+  "pager.next": "次へ →",
+  "pager.range": "全 {total} 件中 {start}–{end} 件",
 
   "resv.request": "リクエスト予約",
   "resv.external": "公式サイト予約",
@@ -292,6 +295,9 @@ const en: Dict = {
   "results.reviewsLoading": "Loading reviews…",
   "results.reviewsError": "Couldn't load reviews.",
   "results.reviewsAll": "See all reviews →",
+  "pager.prev": "← Prev",
+  "pager.next": "Next →",
+  "pager.range": "{start}–{end} of {total}",
 
   "resv.request": "Request booking",
   "resv.external": "Official site",
@@ -464,6 +470,9 @@ const zhHans: Dict = {
   "results.reviewsLoading": "正在加载评价…",
   "results.reviewsError": "无法获取评价。",
   "results.reviewsAll": "查看全部评价 →",
+  "pager.prev": "← 上一页",
+  "pager.next": "下一页 →",
+  "pager.range": "共 {total} 条中的 {start}–{end} 条",
 
   "resv.request": "申请预订",
   "resv.external": "官方网站",
@@ -624,6 +633,9 @@ const zhHant: Dict = {
   "results.reviewsLoading": "正在載入評價…",
   "results.reviewsError": "無法取得評價。",
   "results.reviewsAll": "查看全部評價 →",
+  "pager.prev": "← 上一頁",
+  "pager.next": "下一頁 →",
+  "pager.range": "共 {total} 條中的 {start}–{end} 條",
 
   "resv.request": "申請預訂",
   "resv.external": "官方網站",
@@ -786,6 +798,9 @@ const ko: Dict = {
   "results.reviewsLoading": "리뷰를 불러오는 중…",
   "results.reviewsError": "리뷰를 불러오지 못했습니다.",
   "results.reviewsAll": "리뷰 전체 보기 →",
+  "pager.prev": "← 이전",
+  "pager.next": "다음 →",
+  "pager.range": "전체 {total}건 중 {start}–{end}건",
 
   "resv.request": "요청 예약",
   "resv.external": "공식 사이트",

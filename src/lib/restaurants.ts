@@ -15,8 +15,10 @@ export interface RestaurantSearchParams {
   radiusM?: number;
   /** ジャンル絞り込み(genre.code) */
   genre?: string;
-  /** 取得件数(最大 100) */
+  /** 取得件数(1ページ分。最大 100) */
   limit?: number;
+  /** 取得開始位置(ページング用) */
+  offset?: number;
 }
 
 export interface RestaurantSearchResult {
@@ -35,14 +37,21 @@ export interface RestaurantSearchResult {
   distance_m: number | null;
 }
 
+export interface RestaurantSearchList {
+  results: RestaurantSearchResult[];
+  /** 絞り込み後の総件数(ページング用) */
+  total: number;
+}
+
 /**
  * 公開店舗(status='published')を全文検索・地理検索・ジャンルで絞り込む。
  * - lat/lng が両方あれば ST_DWithin で半径内に限定し、距離の近い順に並べる。
  * - なければ評価の高い順。
+ * - offset/limit でページングし、絞り込み後の総件数も返す。
  */
 export async function searchRestaurants(
   params: RestaurantSearchParams
-): Promise<RestaurantSearchResult[]> {
+): Promise<RestaurantSearchList> {
   const values: unknown[] = [];
   /** 値を1つ積んで対応するプレースホルダ($n)を返す */
   const bind = (v: unknown) => {
@@ -92,7 +101,16 @@ export async function searchRestaurants(
       JOIN genre g ON g.id = rg.genre_id AND g.code = ${bind(params.genre)}`;
   }
 
+  // 総件数は絞り込み条件のみで数える(limit/offset を積む前に確定させる)。
+  const countSql = `
+    SELECT count(*)::int AS total
+    FROM restaurant r
+    ${genreJoin}
+    WHERE ${where.join(" AND ")}`;
+  const countValues = [...values];
+
   const limitPh = bind(Math.min(Math.max(params.limit ?? 50, 1), 100));
+  const offsetPh = bind(Math.max(params.offset ?? 0, 0));
 
   const sql = `
     SELECT
@@ -117,10 +135,14 @@ export async function searchRestaurants(
     ${genreJoin}
     WHERE ${where.join(" AND ")}
     ORDER BY ${orderBy}
-    LIMIT ${limitPh}
+    LIMIT ${limitPh} OFFSET ${offsetPh}
   `;
 
-  return query<RestaurantSearchResult>(sql, values);
+  const [results, totals] = await Promise.all([
+    query<RestaurantSearchResult>(sql, values),
+    query<{ total: number }>(countSql, countValues),
+  ]);
+  return { results, total: totals[0]?.total ?? 0 };
 }
 
 const UUID_RE =

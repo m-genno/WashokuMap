@@ -8,8 +8,9 @@ export const dynamic = "force-dynamic";
 
 /**
  * GET /api/restaurants/search
- *   ?q=寿司&lat=35.658&lng=139.70&radius=3000&genre=sushi&limit=50
+ *   ?q=寿司&lat=35.658&lng=139.70&radius=3000&genre=sushi&limit=50&page=1
  * すべて任意。lat/lng が両方あるときだけ地理検索を行う。
+ * page は1始まり(1ページ = limit 件)。total で総件数を返す。
  */
 export async function GET(req: NextRequest) {
   const limited = enforceRateLimit(req, "search", {
@@ -26,16 +27,27 @@ export async function GET(req: NextRequest) {
     return Number.isFinite(n) ? n : undefined;
   };
 
+  const limit = Math.min(Math.max(numParam("limit") ?? 50, 1), 100);
+  const pageRaw = numParam("page");
+  const page = pageRaw && pageRaw >= 1 ? Math.floor(pageRaw) : 1;
+
   try {
-    const results = await searchRestaurants({
+    const { results, total } = await searchRestaurants({
       q: clampLen(sp.get("q") ?? undefined, 200),
       lat: numParam("lat"),
       lng: numParam("lng"),
       radiusM: numParam("radius"),
       genre: sp.get("genre") ?? undefined,
-      limit: numParam("limit"),
+      limit,
+      offset: (page - 1) * limit,
     });
-    return NextResponse.json({ count: results.length, results });
+    return NextResponse.json({
+      count: results.length,
+      total,
+      page,
+      perPage: limit,
+      results,
+    });
   } catch (err) {
     console.error("restaurant search failed:", err);
     return NextResponse.json({ error: "search_failed" }, { status: 500 });

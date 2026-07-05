@@ -10,12 +10,16 @@ import { translator } from "@/lib/i18n";
 
 export const dynamic = "force-dynamic";
 
+/** 検索結果の1ページ件数(地図マーカーもこの件数と連動)。 */
+const PER_PAGE = 20;
+
 type SearchParams = {
   q?: string;
   lat?: string;
   lng?: string;
   radius?: string;
   genre?: string;
+  page?: string;
 };
 
 export default async function SearchPage({
@@ -28,16 +32,33 @@ export default async function SearchPage({
   const locale = await getLocale();
   const t = translator(locale);
 
-  const [results, genres] = await Promise.all([
-    searchRestaurants({
-      q,
-      lat: sp.lat ? Number(sp.lat) : undefined,
-      lng: sp.lng ? Number(sp.lng) : undefined,
-      radiusM: sp.radius ? Number(sp.radius) : undefined,
-      genre: sp.genre,
-    }),
-    listGenres(),
-  ]);
+  const pageRaw = Number(sp.page);
+  let page = Number.isFinite(pageRaw) && pageRaw >= 1 ? Math.floor(pageRaw) : 1;
+
+  const searchOpts = {
+    q,
+    lat: sp.lat ? Number(sp.lat) : undefined,
+    lng: sp.lng ? Number(sp.lng) : undefined,
+    radiusM: sp.radius ? Number(sp.radius) : undefined,
+    genre: sp.genre,
+    limit: PER_PAGE,
+  };
+
+  const genresPromise = listGenres();
+  let { results, total } = await searchRestaurants({
+    ...searchOpts,
+    offset: (page - 1) * PER_PAGE,
+  });
+
+  // 古いURL等でページが範囲外なら最終ページに寄せて取り直す。
+  if (results.length === 0 && total > 0 && page > 1) {
+    page = Math.max(1, Math.ceil(total / PER_PAGE));
+    ({ results, total } = await searchRestaurants({
+      ...searchOpts,
+      offset: (page - 1) * PER_PAGE,
+    }));
+  }
+  const genres = await genresPromise;
 
   return (
     <div className="flex flex-1 flex-col bg-orange-50 font-sans text-stone-900">
@@ -64,7 +85,7 @@ export default async function SearchPage({
         </div>
         <p className="mx-auto max-w-5xl px-4 pb-2 text-xs text-stone-500 sm:px-6">
           {q ? t("search.headingWithQuery", { q }) : t("search.heading")}
-          {t("search.count", { count: results.length })}
+          {t("search.count", { count: total })}
         </p>
         <SearchFilters
           locale={locale}
@@ -80,7 +101,20 @@ export default async function SearchPage({
       </header>
 
       <main className="flex-1">
-        <SearchResultsView results={results} locale={locale} />
+        <SearchResultsView
+          results={results}
+          locale={locale}
+          page={page}
+          perPage={PER_PAGE}
+          total={total}
+          searchState={{
+            q: sp.q,
+            genre: sp.genre,
+            lat: sp.lat,
+            lng: sp.lng,
+            radius: sp.radius,
+          }}
+        />
       </main>
     </div>
   );

@@ -234,18 +234,26 @@ export interface AdminRestaurantRow {
   created_at: string;
 }
 
+export interface AdminRestaurantList {
+  restaurants: AdminRestaurantRow[];
+  /** 絞り込み後の総件数(ページング用) */
+  total: number;
+}
+
 /**
  * 管理用の店舗一覧。status を指定すると絞り込み(未指定=すべて)。
  * q を指定すると公開検索と同じ全文検索+トライグラム部分一致で絞り込む
  * (店名・住所・多言語名・紹介文。日本語の途中文字でもヒット)。
  * 公開判定や口コミと違い status フィルタを掛けないので下書きも見える。
+ * offset/limit でページングし、絞り込み後の総件数も返す。
  */
 export async function listRestaurantsForAdmin(opts: {
   status?: RestaurantStatus | null;
   q?: string | null;
   importBatchId?: string | null;
   limit?: number;
-}): Promise<AdminRestaurantRow[]> {
+  offset?: number;
+}): Promise<AdminRestaurantList> {
   const status = opts.status ?? null;
   const q = opts.q?.trim() || null;
   const batchId =
@@ -253,6 +261,7 @@ export async function listRestaurantsForAdmin(opts: {
       ? opts.importBatchId
       : null;
   const limit = Math.min(Math.max(opts.limit ?? 100, 1), 500);
+  const offset = Math.max(opts.offset ?? 0, 0);
 
   const values: unknown[] = [status];
   let where = "($1::text IS NULL OR r.status = $1)";
@@ -269,27 +278,38 @@ export async function listRestaurantsForAdmin(opts: {
     values.push(batchId);
     where += ` AND r.import_batch_id = $${values.length}`;
   }
+  // 総件数は絞り込み条件のみで数える(ジャンル結合は表示用なので不要)。
+  const countValues = [...values];
   values.push(limit);
   const limitPh = `$${values.length}`;
+  values.push(offset);
+  const offsetPh = `$${values.length}`;
 
-  return query<AdminRestaurantRow>(
-    `SELECT
-       r.id, r.name, r.name_translations, r.address, r.phone,
-       r.reservation_mode, r.price_range, r.status, r.source,
-       (r.location IS NOT NULL) AS has_location,
-       r.created_at,
-       COALESCE(
-         array_agg(g.code) FILTER (WHERE g.code IS NOT NULL), '{}'
-       ) AS genres
-     FROM restaurant r
-     LEFT JOIN restaurant_genre rg ON rg.restaurant_id = r.id
-     LEFT JOIN genre g ON g.id = rg.genre_id
-     WHERE ${where}
-     GROUP BY r.id
-     ORDER BY r.created_at DESC
-     LIMIT ${limitPh}`,
-    values
-  );
+  const [restaurants, totals] = await Promise.all([
+    query<AdminRestaurantRow>(
+      `SELECT
+         r.id, r.name, r.name_translations, r.address, r.phone,
+         r.reservation_mode, r.price_range, r.status, r.source,
+         (r.location IS NOT NULL) AS has_location,
+         r.created_at,
+         COALESCE(
+           array_agg(g.code) FILTER (WHERE g.code IS NOT NULL), '{}'
+         ) AS genres
+       FROM restaurant r
+       LEFT JOIN restaurant_genre rg ON rg.restaurant_id = r.id
+       LEFT JOIN genre g ON g.id = rg.genre_id
+       WHERE ${where}
+       GROUP BY r.id
+       ORDER BY r.created_at DESC
+       LIMIT ${limitPh} OFFSET ${offsetPh}`,
+      values
+    ),
+    query<{ total: number }>(
+      `SELECT count(*)::int AS total FROM restaurant r WHERE ${where}`,
+      countValues
+    ),
+  ]);
+  return { restaurants, total: totals[0]?.total ?? 0 };
 }
 
 /** 店舗のステータスを変更(公開/下書きに戻す/休止)。未存在や不正IDは null。 */

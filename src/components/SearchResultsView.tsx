@@ -3,10 +3,13 @@
 import { useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import type { RestaurantSearchResult } from "@/lib/restaurants";
 import type { RecentReview } from "@/lib/reviews";
 import FavoriteButton from "./FavoriteButton";
 import MapLoading from "./MapLoading";
+import Pagination from "./Pagination";
+import type { SearchFilterState } from "./SearchFilters";
 import { translator, pickTranslation, type Locale, type TFn } from "@/lib/i18n";
 
 // Leaflet は window 依存のためクライアントのみで読み込む。
@@ -27,13 +30,39 @@ function truncateBody(text: string): string {
 export default function SearchResultsView({
   results,
   locale = "ja",
+  page = 1,
+  perPage = 20,
+  total = 0,
+  searchState = {},
 }: {
   results: RestaurantSearchResult[];
   locale?: Locale;
+  /** 現在のページ(1始まり) */
+  page?: number;
+  perPage?: number;
+  /** 絞り込み後の総件数 */
+  total?: number;
+  /** ページ移動時にURLへ引き継ぐ検索条件 */
+  searchState?: SearchFilterState;
 }) {
   const t = translator(locale);
+  const router = useRouter();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const itemRefs = useRef<Record<string, HTMLLIElement | null>>({});
+
+  // 検索条件を保ったまま page だけ差し替えて遷移する。
+  function goToPage(p: number) {
+    const params = new URLSearchParams();
+    if (searchState.q) params.set("q", searchState.q);
+    if (searchState.genre) params.set("genre", searchState.genre);
+    if (searchState.lat) params.set("lat", searchState.lat);
+    if (searchState.lng) params.set("lng", searchState.lng);
+    if (searchState.radius) params.set("radius", searchState.radius);
+    if (p > 1) params.set("page", String(p));
+    const qs = params.toString();
+    router.push(qs ? `/search?${qs}` : "/search");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
 
   // 口コミプレビュー: 開いている店舗ID(同時に1件)と取得結果のキャッシュ。
   const [reviewsOpenId, setReviewsOpenId] = useState<string | null>(null);
@@ -87,7 +116,8 @@ export default function SearchResultsView({
       </div>
 
       {/* 一覧 */}
-      <ul className="flex flex-col gap-3 p-4">
+      <div>
+        <ul className="flex flex-col gap-3 p-4">
         {results.map((r) => {
           const selected = r.id === selectedId;
           const displayName = pickTranslation(r.name_translations, locale, r.name);
@@ -176,7 +206,20 @@ export default function SearchResultsView({
             </li>
           );
         })}
-      </ul>
+        </ul>
+        <Pagination
+          page={page}
+          perPage={perPage}
+          total={total}
+          onPageChange={goToPage}
+          prevLabel={t("pager.prev")}
+          nextLabel={t("pager.next")}
+          rangeLabel={(start, end, tot) =>
+            t("pager.range", { start, end, total: tot })
+          }
+          className="px-4 pb-6"
+        />
+      </div>
     </div>
   );
 }

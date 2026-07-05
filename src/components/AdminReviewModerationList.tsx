@@ -3,6 +3,9 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { adminHeaders } from "@/lib/adminClient";
+import Pagination from "./Pagination";
+
+const PER_PAGE = 50;
 
 interface Row {
   id: string;
@@ -27,6 +30,8 @@ const FILTERS: { key: string; label: string }[] = [
 
 export default function AdminReviewModerationList() {
   const [filter, setFilter] = useState("reported");
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -34,19 +39,31 @@ export default function AdminReviewModerationList() {
   const [reloadKey, setReloadKey] = useState(0);
   const reload = () => setReloadKey((k) => k + 1);
 
+  const changeFilter = (key: string) => {
+    setFilter(key);
+    setPage(1);
+  };
+
+  const changePage = (p: number) => {
+    setPage(p);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
   useEffect(() => {
     let cancelled = false;
     const run = async () => {
       setLoading(true);
       setError("");
       try {
-        const res = await fetch(`/api/admin/reviews?filter=${filter}`, {
-          headers: adminHeaders(),
-        });
+        const res = await fetch(
+          `/api/admin/reviews?filter=${filter}&page=${page}&perPage=${PER_PAGE}`,
+          { headers: adminHeaders() }
+        );
         if (cancelled) return;
         if (res.status === 401) {
           setError("認証が必要です。上のトークンを入力してください。");
           setRows([]);
+          setTotal(0);
           return;
         }
         const data = await res.json();
@@ -54,13 +71,22 @@ export default function AdminReviewModerationList() {
         if (!res.ok) {
           setError(`取得に失敗しました: ${data.error ?? "unknown"}`);
           setRows([]);
+          setTotal(0);
+          return;
+        }
+        // 対応が進んで件数が減り現在ページが範囲外になったら最終ページへ寄せる。
+        const lastPage = Math.max(1, Math.ceil((data.total ?? 0) / PER_PAGE));
+        if (page > lastPage) {
+          setPage(lastPage);
           return;
         }
         setRows(data.reviews);
+        setTotal(data.total ?? data.reviews.length);
       } catch {
         if (!cancelled) {
           setError("通信エラー");
           setRows([]);
+          setTotal(0);
         }
       } finally {
         if (!cancelled) setLoading(false);
@@ -70,7 +96,7 @@ export default function AdminReviewModerationList() {
     return () => {
       cancelled = true;
     };
-  }, [filter, reloadKey]);
+  }, [filter, page, reloadKey]);
 
   async function setStatus(id: string, status: "published" | "hidden") {
     setBusyId(id);
@@ -101,7 +127,7 @@ export default function AdminReviewModerationList() {
           <button
             key={f.key}
             type="button"
-            onClick={() => setFilter(f.key)}
+            onClick={() => changeFilter(f.key)}
             className={`rounded-full border px-3 py-1 text-sm font-medium transition-colors ${
               filter === f.key
                 ? "border-orange-800 bg-orange-800 text-orange-50"
@@ -133,6 +159,15 @@ export default function AdminReviewModerationList() {
           対象の口コミはありません。
         </p>
       ) : (
+        <>
+        <Pagination
+          page={page}
+          perPage={PER_PAGE}
+          total={total}
+          onPageChange={changePage}
+          disabled={loading}
+          className="mb-3"
+        />
         <ul className="flex flex-col gap-3">
           {rows.map((r) => (
             <li
@@ -232,6 +267,15 @@ export default function AdminReviewModerationList() {
             </li>
           ))}
         </ul>
+        <Pagination
+          page={page}
+          perPage={PER_PAGE}
+          total={total}
+          onPageChange={changePage}
+          disabled={loading}
+          className="mt-3"
+        />
+        </>
       )}
     </div>
   );

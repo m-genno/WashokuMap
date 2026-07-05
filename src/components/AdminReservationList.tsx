@@ -3,6 +3,9 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { adminHeaders } from "@/lib/adminClient";
+import Pagination from "./Pagination";
+
+const PER_PAGE = 50;
 
 type Status =
   | "requested"
@@ -110,12 +113,24 @@ export default function AdminReservationList() {
   const [to, setTo] = useState("");
   // 検索実行された値(取得に使う)
   const [applied, setApplied] = useState({ q: "", from: "", to: "" });
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [busyId, setBusyId] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
   const reload = () => setReloadKey((k) => k + 1);
+
+  const changeFilter = (key: string) => {
+    setFilter(key);
+    setPage(1);
+  };
+
+  const changePage = (p: number) => {
+    setPage(p);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -127,6 +142,8 @@ export default function AdminReservationList() {
         if (applied.q) params.set("q", applied.q);
         if (applied.from) params.set("from", applied.from);
         if (applied.to) params.set("to", applied.to);
+        params.set("page", String(page));
+        params.set("perPage", String(PER_PAGE));
         const res = await fetch(`/api/admin/reservations?${params.toString()}`, {
           headers: adminHeaders(),
         });
@@ -134,6 +151,7 @@ export default function AdminReservationList() {
         if (res.status === 401) {
           setError("認証が必要です。上のトークンを入力してください。");
           setRows([]);
+          setTotal(0);
           return;
         }
         const data = await res.json();
@@ -141,13 +159,22 @@ export default function AdminReservationList() {
         if (!res.ok) {
           setError(`取得に失敗しました: ${data.error ?? "unknown"}`);
           setRows([]);
+          setTotal(0);
+          return;
+        }
+        // 再読み込みで件数が減り現在ページが範囲外になったら最終ページへ寄せる。
+        const lastPage = Math.max(1, Math.ceil((data.total ?? 0) / PER_PAGE));
+        if (page > lastPage) {
+          setPage(lastPage);
           return;
         }
         setRows(data.reservations);
+        setTotal(data.total ?? data.reservations.length);
       } catch {
         if (!cancelled) {
           setError("通信エラー");
           setRows([]);
+          setTotal(0);
         }
       } finally {
         if (!cancelled) setLoading(false);
@@ -157,7 +184,7 @@ export default function AdminReservationList() {
     return () => {
       cancelled = true;
     };
-  }, [filter, applied, reloadKey]);
+  }, [filter, applied, page, reloadKey]);
 
   async function changeStatus(id: string, status: Status) {
     setBusyId(id);
@@ -195,6 +222,7 @@ export default function AdminReservationList() {
         onSubmit={(e) => {
           e.preventDefault();
           setApplied({ q: q.trim(), from, to });
+          setPage(1);
         }}
         className="mb-3 flex flex-wrap items-end gap-2"
       >
@@ -240,6 +268,7 @@ export default function AdminReservationList() {
               setFrom("");
               setTo("");
               setApplied({ q: "", from: "", to: "" });
+              setPage(1);
             }}
             className="rounded-full border border-stone-300 bg-white px-3 py-1.5 text-sm text-stone-600 hover:border-orange-400"
           >
@@ -253,7 +282,7 @@ export default function AdminReservationList() {
           <button
             key={f.key}
             type="button"
-            onClick={() => setFilter(f.key)}
+            onClick={() => changeFilter(f.key)}
             className={`rounded-full border px-3 py-1 text-sm font-medium transition-colors ${
               filter === f.key
                 ? "border-orange-800 bg-orange-800 text-orange-50"
@@ -285,6 +314,15 @@ export default function AdminReservationList() {
           該当する予約はありません。
         </p>
       ) : (
+        <>
+        <Pagination
+          page={page}
+          perPage={PER_PAGE}
+          total={total}
+          onPageChange={changePage}
+          disabled={loading}
+          className="mb-3"
+        />
         <ul className="flex flex-col gap-3">
           {rows.map((r) => {
             const diet = dietarySummary(r.dietary);
@@ -380,6 +418,15 @@ export default function AdminReservationList() {
             );
           })}
         </ul>
+        <Pagination
+          page={page}
+          perPage={PER_PAGE}
+          total={total}
+          onPageChange={changePage}
+          disabled={loading}
+          className="mt-3"
+        />
+        </>
       )}
     </div>
   );

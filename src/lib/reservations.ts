@@ -156,13 +156,20 @@ function escapeLike(s: string): string {
  * - q:      お客様名・店名・メール・電話の部分一致
  * - from/to: 希望日時(desired_at)の範囲(日付。to はその日を含む)
  */
+export interface AdminReservationList {
+  reservations: AdminReservationRow[];
+  /** 絞り込み後の総件数(ページング用) */
+  total: number;
+}
+
 export async function listReservationsForAdmin(opts: {
   status?: ReservationStatusValue | null;
   q?: string | null;
   from?: string | null;
   to?: string | null;
   limit?: number;
-}): Promise<AdminReservationRow[]> {
+  offset?: number;
+}): Promise<AdminReservationList> {
   const values: unknown[] = [];
   const bind = (v: unknown) => {
     values.push(v);
@@ -198,24 +205,37 @@ export async function listReservationsForAdmin(opts: {
     }
   }
 
+  const whereSql = where.length ? `WHERE ${where.join(" AND ")}` : "";
+  // 総件数は絞り込み条件のみで数える(limit/offset を積む前に確定させる)。
+  const countValues = [...values];
   const limit = Math.min(Math.max(opts.limit ?? 100, 1), 500);
   const limitPh = bind(limit);
-  const whereSql = where.length ? `WHERE ${where.join(" AND ")}` : "";
+  const offsetPh = bind(Math.max(opts.offset ?? 0, 0));
 
-  return query<AdminReservationRow>(
-    `SELECT
-       res.id, res.restaurant_id, r.name AS restaurant_name,
-       res.status, res.party_size, res.desired_at, res.desired_alt_at,
-       res.guest_name, res.guest_email, res.guest_phone, res.guest_lang,
-       res.requests, res.requests_ja, res.dietary, res.budget_per_person,
-       res.created_at
-     FROM reservation res
-     JOIN restaurant r ON r.id = res.restaurant_id
-     ${whereSql}
-     ORDER BY res.desired_at DESC
-     LIMIT ${limitPh}`,
-    values
-  );
+  const [reservations, totals] = await Promise.all([
+    query<AdminReservationRow>(
+      `SELECT
+         res.id, res.restaurant_id, r.name AS restaurant_name,
+         res.status, res.party_size, res.desired_at, res.desired_alt_at,
+         res.guest_name, res.guest_email, res.guest_phone, res.guest_lang,
+         res.requests, res.requests_ja, res.dietary, res.budget_per_person,
+         res.created_at
+       FROM reservation res
+       JOIN restaurant r ON r.id = res.restaurant_id
+       ${whereSql}
+       ORDER BY res.desired_at DESC
+       LIMIT ${limitPh} OFFSET ${offsetPh}`,
+      values
+    ),
+    query<{ total: number }>(
+      `SELECT count(*)::int AS total
+       FROM reservation res
+       JOIN restaurant r ON r.id = res.restaurant_id
+       ${whereSql}`,
+      countValues
+    ),
+  ]);
+  return { reservations, total: totals[0]?.total ?? 0 };
 }
 
 /** 状態遷移後にお客様へ通知するため、同トランザクション内で取得する付随情報。 */

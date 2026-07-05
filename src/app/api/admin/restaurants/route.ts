@@ -16,15 +16,17 @@ export const dynamic = "force-dynamic";
 const MODES = ["request", "external", "phone_only"];
 
 /**
- * GET /api/admin/restaurants?status=draft|published|closed|all&q=...
+ * GET /api/admin/restaurants?status=draft|published|closed|all&q=...&page=1&perPage=50
  * 管理用の店舗一覧(下書き含む)。status 省略時は draft、q で語句検索。
+ * page は1始まり。total で総件数を返す。
  */
 export async function GET(req: NextRequest) {
   if (!isAdminAuthorized(req)) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
-  const raw = req.nextUrl.searchParams.get("status") ?? "draft";
+  const sp = req.nextUrl.searchParams;
+  const raw = sp.get("status") ?? "draft";
   let status: RestaurantStatus | null;
   if (raw === "all") {
     status = null;
@@ -34,16 +36,32 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "invalid_status" }, { status: 400 });
   }
 
-  const q = req.nextUrl.searchParams.get("q");
-  const batch = req.nextUrl.searchParams.get("batch");
+  const q = sp.get("q");
+  const batch = sp.get("batch");
+  const pageRaw = Number(sp.get("page"));
+  const perPageRaw = Number(sp.get("perPage"));
+  const page =
+    Number.isFinite(pageRaw) && pageRaw >= 1 ? Math.floor(pageRaw) : 1;
+  const perPage =
+    Number.isFinite(perPageRaw) && perPageRaw >= 1
+      ? Math.min(Math.floor(perPageRaw), 500)
+      : 50;
 
   try {
-    const restaurants = await listRestaurantsForAdmin({
+    const { restaurants, total } = await listRestaurantsForAdmin({
       status,
       q,
       importBatchId: batch,
+      limit: perPage,
+      offset: (page - 1) * perPage,
     });
-    return NextResponse.json({ count: restaurants.length, restaurants });
+    return NextResponse.json({
+      count: restaurants.length,
+      total,
+      page,
+      perPage,
+      restaurants,
+    });
   } catch (err) {
     console.error("admin list restaurants failed:", err);
     return NextResponse.json({ error: "list_failed" }, { status: 500 });

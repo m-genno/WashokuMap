@@ -245,18 +245,27 @@ export interface ModerationReviewRow {
   photos: ReviewPhoto[];
 }
 
+export interface ModerationReviewList {
+  reviews: ModerationReviewRow[];
+  /** 絞り込み後の総件数(ページング用) */
+  total: number;
+}
+
 /**
  * モデレーション対象の口コミ一覧。
  * - reported: 公開中で通報のあるもの
  * - hidden:   非表示中のもの
  * - all:      通報があるもの、または非表示中のもの
+ * offset/limit でページングし、絞り込み後の総件数も返す。
  */
 export async function listReviewsForModeration(opts: {
   filter?: ModerationFilter;
   limit?: number;
-}): Promise<ModerationReviewRow[]> {
+  offset?: number;
+}): Promise<ModerationReviewList> {
   const filter = opts.filter ?? "reported";
   const limit = Math.min(Math.max(opts.limit ?? 100, 1), 500);
+  const offset = Math.max(opts.offset ?? 0, 0);
 
   let where = "";
   let having = "HAVING count(rep.id) > 0";
@@ -269,33 +278,47 @@ export async function listReviewsForModeration(opts: {
     having = "HAVING count(rep.id) > 0 OR rv.status = 'hidden'";
   }
 
-  return query<ModerationReviewRow>(
-    `SELECT
-       rv.id, rv.restaurant_id, r.name AS restaurant_name,
-       rv.rating, rv.body, rv.body_lang, rv.body_translations,
-       rv.status, rv.created_at,
-       count(rep.id)::int AS report_count,
-       COALESCE(
-         (array_agg(rep.reason ORDER BY rep.created_at DESC)
-            FILTER (WHERE rep.id IS NOT NULL))[1:5],
-         '{}'
-       ) AS reasons,
-       COALESCE(
-         (SELECT json_agg(
-                   json_build_object('url', rp.url, 'thumbUrl', rp.thumb_url)
-                   ORDER BY rp.sort_order)
-          FROM review_photo rp WHERE rp.review_id = rv.id),
-         '[]'
-       ) AS photos
-     FROM review rv
-     JOIN restaurant r ON r.id = rv.restaurant_id
-     LEFT JOIN review_report rep ON rep.review_id = rv.id
-     ${where}
-     GROUP BY rv.id, r.name
-     ${having}
-     ORDER BY count(rep.id) DESC, rv.created_at DESC
-     LIMIT ${limit}`
-  );
+  const [reviews, totals] = await Promise.all([
+    query<ModerationReviewRow>(
+      `SELECT
+         rv.id, rv.restaurant_id, r.name AS restaurant_name,
+         rv.rating, rv.body, rv.body_lang, rv.body_translations,
+         rv.status, rv.created_at,
+         count(rep.id)::int AS report_count,
+         COALESCE(
+           (array_agg(rep.reason ORDER BY rep.created_at DESC)
+              FILTER (WHERE rep.id IS NOT NULL))[1:5],
+           '{}'
+         ) AS reasons,
+         COALESCE(
+           (SELECT json_agg(
+                     json_build_object('url', rp.url, 'thumbUrl', rp.thumb_url)
+                     ORDER BY rp.sort_order)
+            FROM review_photo rp WHERE rp.review_id = rv.id),
+           '[]'
+         ) AS photos
+       FROM review rv
+       JOIN restaurant r ON r.id = rv.restaurant_id
+       LEFT JOIN review_report rep ON rep.review_id = rv.id
+       ${where}
+       GROUP BY rv.id, r.name
+       ${having}
+       ORDER BY count(rep.id) DESC, rv.created_at DESC
+       LIMIT ${limit} OFFSET ${offset}`
+    ),
+    // グルーピング+HAVING があるため、同条件のサブクエリを包んで数える。
+    query<{ total: number }>(
+      `SELECT count(*)::int AS total FROM (
+         SELECT rv.id
+         FROM review rv
+         LEFT JOIN review_report rep ON rep.review_id = rv.id
+         ${where}
+         GROUP BY rv.id
+         ${having}
+       ) c`
+    ),
+  ]);
+  return { reviews, total: totals[0]?.total ?? 0 };
 }
 
 const MODERATION_STATUSES = ["published", "hidden"] as const;
