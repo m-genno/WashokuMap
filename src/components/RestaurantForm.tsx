@@ -53,6 +53,41 @@ interface HoursRow {
 
 const DAY_LABELS = ["日", "月", "火", "水", "木", "金", "土"];
 
+/**
+ * 同じ曜日内の営業時間の重複を検出して警告文の配列を返す(保存は妨げない)。
+ * close <= open の行は翌日までの深夜営業として扱う。未入力の行は無視。
+ */
+function findHourOverlaps(hours: HoursRow[]): string[] {
+  const toMin = (t: string) => {
+    const [h, m] = t.split(":").map(Number);
+    return h * 60 + m;
+  };
+  const warnings: string[] = [];
+  for (let day = 0; day <= 6; day++) {
+    const rows = hours
+      .filter((h) => h.dayOfWeek === day && h.openTime && h.closeTime)
+      .map((h) => {
+        const open = toMin(h.openTime);
+        let close = toMin(h.closeTime);
+        if (close <= open) close += 24 * 60; // 深夜営業(翌日まで)
+        return { open, close, label: `${h.openTime}–${h.closeTime}` };
+      })
+      .sort((a, b) => a.open - b.open);
+    // 開始順に走査し、これまでで最も遅い終了時刻と重なったら警告。
+    let latest = rows[0];
+    for (let i = 1; i < rows.length; i++) {
+      const cur = rows[i];
+      if (cur.open < latest.close) {
+        warnings.push(
+          `${DAY_LABELS[day]}: ${latest.label} と ${cur.label} が重複しています`
+        );
+      }
+      if (cur.close > latest.close) latest = cur;
+    }
+  }
+  return warnings;
+}
+
 const EMPTY: Initial = {
   name: "",
   name_en: null,
@@ -374,6 +409,8 @@ export default function RestaurantForm({
     field: keyof HoursRow,
     val: string | number
   ) => setHours((hs) => hs.map((h, j) => (j === i ? { ...h, [field]: val } : h)));
+  // 同一曜日で時間帯が重なっていたら警告(保存自体は妨げない)。
+  const hourWarnings = findHourOverlaps(hours);
 
   return (
     <form onSubmit={onSubmit} className="flex flex-col gap-4">
@@ -601,7 +638,7 @@ export default function RestaurantForm({
         </legend>
         {hours.length === 0 ? (
           <p className="text-xs text-stone-400">
-            営業時間は未登録です(昼/夜で行を分けられます)。
+            営業時間は未登録です(同じ曜日に複数の時間帯を登録できます)。
           </p>
         ) : (
           <div className="flex flex-col gap-2">
@@ -648,6 +685,18 @@ export default function RestaurantForm({
                 </button>
               </div>
             ))}
+          </div>
+        )}
+        {hourWarnings.length > 0 && (
+          <div className="mt-2 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800">
+            <p className="font-medium">
+              ⚠ 同じ曜日で時間帯が重複しています(このまま保存もできます):
+            </p>
+            <ul className="mt-0.5 list-inside list-disc">
+              {hourWarnings.map((w) => (
+                <li key={w}>{w}</li>
+              ))}
+            </ul>
           </div>
         )}
         <button
