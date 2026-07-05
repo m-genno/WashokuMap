@@ -18,12 +18,17 @@ npm install
 # 2) 環境変数ファイルを用意(雛形をコピーして編集)
 cp .env.example .env.local          # Windows PowerShell: Copy-Item .env.example .env.local
 
-# 3) ローカルDBを起動 → スキーマ適用 → 動作確認用データ投入
+# 3) Docker起動（ローカル開発用）
+docker compose up -d      で起動
+docker compose down       で停止(データは保持)
+docker compose down -v    で停止＋データ削除
+
+# 4) ローカルDBを起動 → スキーマ適用 → 動作確認用データ投入
 npm run db:up                       # 空の PostgreSQL+PostGIS を起動
 npm run db:migrate                  # スキーマ(0001..)を適用
 npm run db:seed                     # 約200店舗+口コミ/予約などのテストデータ(任意)
 
-# 4) アプリを起動
+# 5) アプリを起動
 npm run dev                         # http://localhost:3000
 ```
 
