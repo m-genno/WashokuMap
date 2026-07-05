@@ -4,7 +4,7 @@
  * 一覧のページング共通部品(1始まり)。
  * 総件数と1ページ件数からページ数を計算し、表示範囲・前へ/次へ・
  * ページ番号(先頭/末尾と現在ページ±1、間は「…」)を表示する。
- * 1ページに収まる場合は何も描画しない。
+ * 1ページに収まる場合も表示範囲がわかるよう描画する(0件のときのみ非表示)。
  */
 export default function Pagination({
   page,
@@ -32,8 +32,8 @@ export default function Pagination({
   rangeLabel?: (start: number, end: number, total: number) => string;
   className?: string;
 }) {
+  if (total <= 0) return null;
   const totalPages = Math.max(1, Math.ceil(total / perPage));
-  if (totalPages <= 1) return null;
 
   const current = Math.min(Math.max(page, 1), totalPages);
   const start = (current - 1) * perPage + 1;
