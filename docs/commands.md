@@ -32,8 +32,6 @@ npm run db:seed                     # 約200店舗+口コミ/予約などのテ�
 npm run dev                         # http://localhost:3000
 ```
 
-> 2〜3 はまとめて `npm run db:fresh` でも可(下記)。
-
 ---
 
 ## 2. 毎日の開発(よく使う)
