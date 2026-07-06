@@ -149,6 +149,7 @@ docker exec washoku-db psql -U postgres -d washokumap -c "delete from reservatio
 | `RESEND_API_KEY` 他 | メール送信 | 送らずログ出力 |
 | `DEEPL_API_KEY` | 翻訳 | 翻訳なし(原文のみ) |
 | `UPLOAD_DIR` | 画像保存先 | `./uploads` |
+| `UPLOAD_DIR_MAX_BYTES` | 画像保存先の容量上限(`0`=無制限) | 2GiB |
 | `RATE_LIMIT_DISABLED` | レート制限の無効化(テスト用) | 有効 |
 | `TRUSTED_PROXY_IPS` | 信頼プロキシの IP/CIDR(XFF の信頼範囲) | XFF不信頼(制限は全体共有) |
 

@@ -191,7 +191,30 @@
 2. 「**確認(削除しない)**」でドライラン。対象件数・解放見込み容量を表示。
 3. 「**削除する**」で実削除(確認ダイアログあり)。実削除は操作ログに記録されます。
 
-> 管理対象のファイル名パターン以外には触れません。定期実行したい場合は `POST /api/admin/uploads/cleanup`(`{"dryRun":false}`)を cron 等で叩けます。
+> 管理対象のファイル名パターン以外には触れません。
+
+### 8.1 定期実行(cron)の設定 — 推奨
+
+掃除は手動でも実行できますが、匿名アップロードは投稿されないまま放置される画像で
+ディスクを圧迫し得るため、**cron 等での定期実行を推奨**します。エンドポイントは
+`POST /api/admin/uploads/cleanup`(要 `x-admin-token`)。
+
+- Linux サーバ(crontab)の例 — 毎日 4:00 に猶予24hで削除:
+
+  ```
+  0 4 * * * curl -sS -X POST -H "x-admin-token: $ADMIN_TOKEN" \
+    -H "Content-Type: application/json" -d '{"dryRun":false,"olderThanHours":24}' \
+    https://<アプリのURL>/api/admin/uploads/cleanup >> /var/log/washokumap-cleanup.log 2>&1
+  ```
+
+- Render の場合: Cron Job サービス(または外部の cron 監視サービス)から同じ `curl` を実行。
+- 実削除は操作ログ(`uploads.cleanup`)に記録されるので、管理画面の「操作ログ」で実行履歴を確認できます。
+
+### 8.2 容量上限(自動の防止弁)
+
+保存先(`UPLOAD_DIR`)全体の容量が **`UPLOAD_DIR_MAX_BYTES`(既定 2GiB)** に達すると、
+新規アップロードは 507 で拒否されます(既存データは消えません)。到達した場合は
+孤立画像の掃除を実行するか、上限を引き上げてください。
 
 ---
 
@@ -210,6 +233,7 @@
 | `DEEPL_API_KEY` | 要望・口コミの日本語訳 | 翻訳なし(原文のみ) |
 | `GEOCODE_API_URL` | 住所→緯度経度 | 既定の Nominatim(OSM) |
 | `UPLOAD_DIR` | アップロード画像の保存先 | `./uploads` |
+| `UPLOAD_DIR_MAX_BYTES` | アップロード保存先全体の容量上限(バイト、`0`=無制限) | 2GiB |
 | `TRUSTED_PROXY_IPS` | 前段の信頼プロキシの IP/CIDR(カンマ区切り)。設定時のみ `X-Forwarded-For` からクライアントIPを特定 | XFFを信頼しない(レート制限は全体共有・監査IPは記録なし) |
 | `RATE_LIMIT_DISABLED` | 公開APIのレート制限の無効化(テスト用) | 既定で有効 |
 
@@ -298,3 +322,4 @@ npm run dev          # http://localhost:3000
 | 要望・口コミの日本語訳が出ない | `DEEPL_API_KEY` 未設定。原文のみ保存されます。 |
 | 予約状態のボタンが押せない | 終端状態(お断り/キャンセル/完了/No-show)からは変更できません。 |
 | アップロード画像が表示されない | 本番で `UPLOAD_DIR` が永続化されているか確認(コンテナ再作成で消えることがあります)。 |
+| 画像のアップロードが失敗し続ける | 保存先が容量上限(`UPLOAD_DIR_MAX_BYTES`)に達している可能性。孤立画像の掃除(§8)を実行するか上限を見直す。サーバログに `storage cap reached` が出ます。 |

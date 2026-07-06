@@ -68,7 +68,12 @@ export async function POST(req: NextRequest) {
   const buffer = Buffer.from(await file.arrayBuffer());
   const result = await saveImage(buffer);
   if (!result.ok) {
-    const status = result.reason === "too_large" ? 413 : 400;
+    const status =
+      result.reason === "too_large"
+        ? 413
+        : result.reason === "storage_full"
+          ? 507
+          : 400;
     return NextResponse.json({ error: result.reason }, { status });
   }
   return NextResponse.json(

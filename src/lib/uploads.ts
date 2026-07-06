@@ -25,6 +25,53 @@ import { query } from "./db";
 
 export const MAX_UPLOAD_BYTES = 5 * 1024 * 1024; // 5MB(入力上限)
 
+const DEFAULT_DIR_MAX_BYTES = 2 * 1024 * 1024 * 1024; // 2GiB(保存先全体の既定上限)
+
+/**
+ * 保存先ディレクトリ全体の容量上限(バイト)。ディスク圧迫DoSの防止弁。
+ * UPLOAD_DIR_MAX_BYTES で上書き、0 を指定すると無効(無制限)。
+ */
+function maxDirBytes(): number {
+  const raw = process.env.UPLOAD_DIR_MAX_BYTES?.trim();
+  if (!raw) return DEFAULT_DIR_MAX_BYTES;
+  const n = Number(raw);
+  if (!Number.isFinite(n) || n < 0) return DEFAULT_DIR_MAX_BYTES;
+  return Math.floor(n);
+}
+
+// ディレクトリ合計サイズのキャッシュ(アップロード毎の全走査を避ける)。
+// 書き込みで加算し、掃除(削除)で破棄する。多少の誤差は上限の性質上許容。
+let dirSizeCache: { dir: string; bytes: number; computedAt: number } | null =
+  null;
+const DIR_SIZE_CACHE_MS = 60_000;
+
+async function uploadDirBytes(dir: string): Promise<number> {
+  const now = Date.now();
+  if (
+    dirSizeCache &&
+    dirSizeCache.dir === dir &&
+    now - dirSizeCache.computedAt < DIR_SIZE_CACHE_MS
+  ) {
+    return dirSizeCache.bytes;
+  }
+  let bytes = 0;
+  try {
+    const files = await readdir(dir);
+    for (const name of files) {
+      try {
+        const st = await stat(path.join(dir, name));
+        if (st.isFile()) bytes += st.size;
+      } catch {
+        // 走査中に消えたファイル等は無視
+      }
+    }
+  } catch {
+    bytes = 0; // ディレクトリ未作成 = 空
+  }
+  dirSizeCache = { dir, bytes, computedAt: now };
+  return bytes;
+}
+
 const FULL_MAX = 1600;
 const THUMB_MAX = 400;
 
@@ -52,11 +99,15 @@ function uploadDir(): string {
 
 export type SaveResult =
   | { ok: true; url: string; thumbUrl: string }
-  | { ok: false; reason: "unsupported_type" | "too_large" | "write_failed" };
+  | {
+      ok: false;
+      reason: "unsupported_type" | "too_large" | "storage_full" | "write_failed";
+    };
 
 /**
  * 画像を軽量化・サムネ生成して保存し、表示用URLとサムネURLを返す。
  * デコードできない入力(画像でない等)は unsupported_type。
+ * 保存先全体が容量上限(UPLOAD_DIR_MAX_BYTES)に達していれば storage_full。
  */
 export async function saveImage(buffer: Buffer): Promise<SaveResult> {
   if (buffer.length > MAX_UPLOAD_BYTES) return { ok: false, reason: "too_large" };
@@ -81,14 +132,29 @@ export async function saveImage(buffer: Buffer): Promise<SaveResult> {
     return { ok: false, reason: "unsupported_type" };
   }
 
+  const dir = uploadDir();
+  const cap = maxDirBytes();
+  if (cap > 0) {
+    const used = await uploadDirBytes(dir);
+    if (used + full.length + thumb.length > cap) {
+      console.error(
+        `[uploads] storage cap reached (${used}/${cap} bytes). ` +
+          "Run the orphan cleanup or raise UPLOAD_DIR_MAX_BYTES."
+      );
+      return { ok: false, reason: "storage_full" };
+    }
+  }
+
   const id = randomUUID();
   const fullName = `${id}.webp`;
   const thumbName = `${id}-t.webp`;
   try {
-    const dir = uploadDir();
     await mkdir(dir, { recursive: true });
     await writeFile(path.join(dir, fullName), full);
     await writeFile(path.join(dir, thumbName), thumb);
+    if (dirSizeCache && dirSizeCache.dir === dir) {
+      dirSizeCache.bytes += full.length + thumb.length;
+    }
     return {
       ok: true,
       url: `/api/uploads/${fullName}`,
@@ -187,6 +253,8 @@ export async function cleanupOrphanUploads(
       }
     }
   }
+
+  if (!dryRun && deleted > 0) dirSizeCache = null; // 容量キャッシュを再計算させる
 
   return {
     scanned,
