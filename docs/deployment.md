@@ -84,7 +84,7 @@
 - [ ] **孤立画像の掃除を cron で定期実行**(`POST /api/admin/uploads/cleanup`。手順は [`admin-guide.md`](./admin-guide.md) §8.1)。容量上限は `UPLOAD_DIR_MAX_BYTES`(既定 2GiB)をディスクサイズに合わせて調整。
 - [ ] **`TRUSTED_PROXY_IPS` を設定**(前段プロキシの IP/CIDR。未設定だと `X-Forwarded-For` を信頼せず、レート制限が全クライアント共有・監査ログのIPなしになる)。
 - [ ] 環境変数: `DATABASE_URL`(サーバレスはプーラ用)、`RESEND_API_KEY` / `NOTIFICATION_FROM_EMAIL`(+ 任意 `RESERVATION_DESK_EMAIL`)、`APP_BASE_URL`、任意 `DEEPL_API_KEY` / `GEOCODE_API_URL`。
-- [ ] (任意)**限定公開にする場合は `SITE_LOCK=true`**(全ページ/APIにブラウザの Basic 認証、パスワード=`ADMIN_TOKEN`。`/admin` 配下は独自トークン保護のため対象外。`src/proxy.ts`)。一般公開に切り替えるときに削除する。
+- [ ] (任意)**限定公開にする場合は `SITE_LOCK=true`**(全ページ/APIにブラウザの Basic 認証、パスワード=`ADMIN_TOKEN`。`/mayuchan` 配下は独自トークン保護のため対象外。`src/proxy.ts`)。一般公開に切り替えるときに削除する。
 - [ ] **送信ドメインの SPF/DKIM 検証**(到達率)。
 - [ ] セキュリティヘッダ(CSP / X-Frame-Options / X-Content-Type-Options / Referrer-Policy)は `next.config.ts` の `headers()` で全ルートに付与済み。CDN/プロキシ側で**上書き・削除していないか**を確認。
 - [ ] **Node 20+ を固定**(`engines` に明記)。コンテナ最小化に `next.config` の `output: "standalone"` を検討。

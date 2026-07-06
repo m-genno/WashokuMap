@@ -126,7 +126,7 @@ export function fmtValLines(v: unknown, maxLen?: number): string[] {
 /** 監査対象へのリンク(店舗のみ編集画面へ)。 */
 export function targetLink(r: AuditRow): string | null {
   if (r.target_type === "restaurant" && r.target_id) {
-    return `/admin/restaurants/${r.target_id}/edit`;
+    return `/mayuchan/restaurants/${r.target_id}/edit`;
   }
   return null;
 }

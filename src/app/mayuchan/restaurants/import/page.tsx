@@ -201,7 +201,7 @@ export default function ImportPage() {
     <div className="flex flex-1 flex-col bg-stone-50 font-sans text-stone-900">
       <header className="border-b border-stone-200 bg-white">
         <div className="mx-auto flex max-w-3xl items-center gap-3 px-4 py-3 sm:px-6">
-          <Link href="/admin" className="font-semibold">
+          <Link href="/mayuchan" className="font-semibold">
             管理
           </Link>
           <span className="text-stone-400">/</span>
@@ -383,7 +383,7 @@ export default function ImportPage() {
             <div className="mb-3 flex flex-wrap items-center gap-3">
               <h2 className="font-semibold">取り込んだ店舗の確認</h2>
               <Link
-                href="/admin/restaurants"
+                href="/mayuchan/restaurants"
                 className="text-sm text-orange-800 hover:text-orange-900"
               >
                 店舗一覧で検索・編集 →
@@ -393,7 +393,7 @@ export default function ImportPage() {
               <p className="rounded-2xl border border-dashed border-stone-300 bg-white/60 p-6 text-sm text-stone-500">
                 表示できる店舗がありません(失敗のみ、または一覧の取得に失敗)。
                 <Link
-                  href="/admin/restaurants"
+                  href="/mayuchan/restaurants"
                   className="ml-1 text-orange-800 hover:text-orange-900"
                 >
                   店舗一覧へ

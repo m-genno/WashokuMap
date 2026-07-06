@@ -83,7 +83,7 @@ export default function AdminRestaurantRows({
 
           <div className="mt-3 flex flex-wrap items-center gap-2">
             <Link
-              href={`/admin/restaurants/${r.id}/edit`}
+              href={`/mayuchan/restaurants/${r.id}/edit`}
               className="rounded-full border border-orange-300 px-3 py-1.5 text-xs font-medium text-orange-800 hover:bg-orange-50"
             >
               編集

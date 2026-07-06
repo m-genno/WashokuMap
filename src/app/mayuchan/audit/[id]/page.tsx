@@ -15,11 +15,11 @@ export default async function AdminAuditDetailPage({
     <div className="flex flex-1 flex-col bg-stone-50 font-sans text-stone-900">
       <header className="border-b border-stone-200 bg-white">
         <div className="mx-auto flex max-w-3xl items-center gap-3 px-4 py-3 sm:px-6">
-          <Link href="/admin" className="font-semibold">
+          <Link href="/mayuchan" className="font-semibold">
             管理
           </Link>
           <span className="text-stone-400">/</span>
-          <Link href="/admin/audit" className="text-stone-600 hover:text-orange-800">
+          <Link href="/mayuchan/audit" className="text-stone-600 hover:text-orange-800">
             操作ログ
           </Link>
           <span className="text-stone-400">/</span>
@@ -33,7 +33,7 @@ export default async function AdminAuditDetailPage({
         </div>
         <div className="mb-4">
           <Link
-            href="/admin/audit"
+            href="/mayuchan/audit"
             className="text-sm text-orange-800 hover:text-orange-900"
           >
             ← 操作ログ一覧へ戻る

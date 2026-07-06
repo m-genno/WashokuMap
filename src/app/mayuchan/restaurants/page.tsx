@@ -10,20 +10,20 @@ export default function AdminRestaurantsPage() {
     <div className="flex flex-1 flex-col bg-stone-50 font-sans text-stone-900">
       <header className="border-b border-stone-200 bg-white">
         <div className="mx-auto flex max-w-3xl items-center gap-3 px-4 py-3 sm:px-6">
-          <Link href="/admin" className="font-semibold">
+          <Link href="/mayuchan" className="font-semibold">
             管理
           </Link>
           <span className="text-stone-400">/</span>
           <span className="text-stone-600">店舗一覧・公開</span>
           <div className="ml-auto flex gap-3 text-sm">
             <Link
-              href="/admin/restaurants/new"
+              href="/mayuchan/restaurants/new"
               className="text-orange-800 hover:text-orange-900"
             >
               + 登録
             </Link>
             <Link
-              href="/admin/restaurants/import"
+              href="/mayuchan/restaurants/import"
               className="text-orange-800 hover:text-orange-900"
             >
               CSV

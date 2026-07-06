@@ -17,7 +17,8 @@
 - `src/app/` … ページ + APIルート(App Router)
   - `api/admin/*` … 管理API(`isAdminAuthorized` でトークン保護)
   - `api/restaurants` `api/reservations` `api/reviews` `api/uploads` … 公開/共通API
-  - `admin/*` … 管理画面 / `restaurants/[id]` `search` `favorites` `offline` `reservations/[id]` … 公開画面
+  - `mayuchan/*` … 管理画面(推測されにくいパスに改名。APIは `api/admin/*` のまま)/
+    `restaurants/[id]` `search` `favorites` `offline` `reservations/[id]` … 公開画面
 - `src/lib/` … サーバ処理: `restaurants` `reservations` `reviews` `adminRestaurants` `adminAudit`
   `uploads` `i18n` `translation` `geocode` `notifications` `guestNotifications` `users` `serverLocale` `db`
   / クライアント: `clientStore`(匿名ID・お気に入り)・`adminClient`(トークン)

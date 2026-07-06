@@ -25,8 +25,8 @@ function safeEqual(a: string, b: string): boolean {
 // 認証ダイアログが毎回出てしまうため除外する。
 function isExempt(pathname: string): boolean {
   return (
-    pathname === "/admin" ||
-    pathname.startsWith("/admin/") ||
+    pathname === "/mayuchan" ||
+    pathname.startsWith("/mayuchan/") ||
     pathname.startsWith("/api/admin/")
   );
 }

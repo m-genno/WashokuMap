@@ -153,7 +153,7 @@ export default function AdminAuditList() {
             return (
               <li
                 key={r.id}
-                onClick={() => router.push(`/admin/audit/${r.id}`)}
+                onClick={() => router.push(`/mayuchan/audit/${r.id}`)}
                 className="cursor-pointer rounded-xl border border-stone-200 bg-white p-3 text-sm shadow-sm transition-colors hover:border-orange-300"
               >
                 <div className="flex flex-wrap items-center gap-2">
@@ -186,7 +186,7 @@ export default function AdminAuditList() {
                     )
                   )}
                   <Link
-                    href={`/admin/audit/${r.id}`}
+                    href={`/mayuchan/audit/${r.id}`}
                     onClick={(e) => e.stopPropagation()}
                     className="ml-auto text-orange-800 hover:text-orange-900"
                   >

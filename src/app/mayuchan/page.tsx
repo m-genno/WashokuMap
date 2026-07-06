@@ -30,7 +30,7 @@ export default function AdminHome() {
 
         <div className="grid gap-3 sm:grid-cols-2">
           <Link
-            href="/admin/reservations"
+            href="/mayuchan/reservations"
             className="rounded-2xl border border-stone-200 bg-white p-5 shadow-sm hover:border-orange-300 sm:col-span-2"
           >
             <h2 className="font-semibold">予約デスク</h2>
@@ -39,7 +39,7 @@ export default function AdminHome() {
             </p>
           </Link>
           <Link
-            href="/admin/reviews"
+            href="/mayuchan/reviews"
             className="rounded-2xl border border-stone-200 bg-white p-5 shadow-sm hover:border-orange-300 sm:col-span-2"
           >
             <h2 className="font-semibold">口コミ モデレーション</h2>
@@ -48,7 +48,7 @@ export default function AdminHome() {
             </p>
           </Link>
           <Link
-            href="/admin/restaurants"
+            href="/mayuchan/restaurants"
             className="rounded-2xl border border-stone-200 bg-white p-5 shadow-sm hover:border-orange-300 sm:col-span-2"
           >
             <h2 className="font-semibold">店舗一覧・公開</h2>
@@ -57,7 +57,7 @@ export default function AdminHome() {
             </p>
           </Link>
           <Link
-            href="/admin/restaurants/new"
+            href="/mayuchan/restaurants/new"
             className="rounded-2xl border border-stone-200 bg-white p-5 shadow-sm hover:border-orange-300"
           >
             <h2 className="font-semibold">店舗を登録</h2>
@@ -66,7 +66,7 @@ export default function AdminHome() {
             </p>
           </Link>
           <Link
-            href="/admin/restaurants/import"
+            href="/mayuchan/restaurants/import"
             className="rounded-2xl border border-stone-200 bg-white p-5 shadow-sm hover:border-orange-300"
           >
             <h2 className="font-semibold">CSVインポート</h2>
@@ -75,7 +75,7 @@ export default function AdminHome() {
             </p>
           </Link>
           <Link
-            href="/admin/audit"
+            href="/mayuchan/audit"
             className="rounded-2xl border border-stone-200 bg-white p-5 shadow-sm hover:border-orange-300"
           >
             <h2 className="font-semibold">操作ログ</h2>
@@ -84,7 +84,7 @@ export default function AdminHome() {
             </p>
           </Link>
           <Link
-            href="/admin/maintenance"
+            href="/mayuchan/maintenance"
             className="rounded-2xl border border-stone-200 bg-white p-5 shadow-sm hover:border-orange-300"
           >
             <h2 className="font-semibold">メンテナンス</h2>

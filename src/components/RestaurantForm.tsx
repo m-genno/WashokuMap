@@ -330,7 +330,7 @@ export default function RestaurantForm({
               のため公開されていません
             </span>
           )}
-          <Link href="/admin/restaurants" className="text-emerald-900 underline">
+          <Link href="/mayuchan/restaurants" className="text-emerald-900 underline">
             一覧へ戻る
           </Link>
           {!editing && (

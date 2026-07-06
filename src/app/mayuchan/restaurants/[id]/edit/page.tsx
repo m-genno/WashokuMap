@@ -30,12 +30,12 @@ export default async function EditRestaurantPage({
     <div className="flex flex-1 flex-col bg-stone-50 font-sans text-stone-900">
       <header className="border-b border-stone-200 bg-white">
         <div className="mx-auto flex max-w-2xl items-center gap-3 px-4 py-3 sm:px-6">
-          <Link href="/admin" className="font-semibold">
+          <Link href="/mayuchan" className="font-semibold">
             管理
           </Link>
           <span className="text-stone-400">/</span>
           <Link
-            href="/admin/restaurants"
+            href="/mayuchan/restaurants"
             className="text-stone-600 hover:text-stone-900"
           >
             店舗一覧
