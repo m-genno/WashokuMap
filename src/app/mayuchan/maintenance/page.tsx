@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import AdminTokenField from "@/components/AdminTokenField";
+import AdminGate from "@/components/AdminGate";
 import AdminUploadCleanup from "@/components/AdminUploadCleanup";
 
 export const metadata: Metadata = { title: "メンテナンス(管理)" };
@@ -19,10 +19,9 @@ export default function AdminMaintenancePage() {
       </header>
 
       <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-6 sm:px-6">
-        <div className="mb-4">
-          <AdminTokenField />
-        </div>
-        <AdminUploadCleanup />
+        <AdminGate>
+          <AdminUploadCleanup />
+        </AdminGate>
       </main>
     </div>
   );

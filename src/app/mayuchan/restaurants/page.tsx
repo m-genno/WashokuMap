@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import AdminTokenField from "@/components/AdminTokenField";
+import AdminGate from "@/components/AdminGate";
 import AdminRestaurantList from "@/components/AdminRestaurantList";
 
 export const metadata: Metadata = { title: "店舗一覧・公開" };
@@ -33,14 +33,13 @@ export default function AdminRestaurantsPage() {
       </header>
 
       <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-6 sm:px-6">
-        <div className="mb-4">
-          <AdminTokenField />
-        </div>
-        <p className="mb-4 text-sm text-stone-600">
-          投入した店舗は <strong>下書き</strong>{" "}
-          です。内容を確認し「公開する」で検索・詳細に表示されます。位置情報がない店舗は公開できません(登録/CSVで住所から補完)。
-        </p>
-        <AdminRestaurantList />
+        <AdminGate>
+          <p className="mb-4 text-sm text-stone-600">
+            投入した店舗は <strong>下書き</strong>{" "}
+            です。内容を確認し「公開する」で検索・詳細に表示されます。位置情報がない店舗は公開できません(登録/CSVで住所から補完)。
+          </p>
+          <AdminRestaurantList />
+        </AdminGate>
       </main>
     </div>
   );

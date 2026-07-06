@@ -4,7 +4,7 @@ import { useRef, useState } from "react";
 import Link from "next/link";
 import { parseCsv } from "@/lib/csv";
 import { adminHeaders } from "@/lib/adminClient";
-import AdminTokenField from "@/components/AdminTokenField";
+import AdminGate from "@/components/AdminGate";
 import AdminRestaurantRows, {
   type RestaurantRow,
   type RestaurantRowStatus,
@@ -210,9 +210,7 @@ export default function ImportPage() {
       </header>
 
       <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-6 sm:px-6">
-        <div className="mb-4">
-          <AdminTokenField />
-        </div>
+        <AdminGate>
 
         <p className="mb-2 text-sm text-stone-600">
           列(先頭行ヘッダ): <code className="text-xs">{COLUMNS.join(", ")}</code>
@@ -408,6 +406,7 @@ export default function ImportPage() {
             )}
           </section>
         )}
+        </AdminGate>
       </main>
     </div>
   );

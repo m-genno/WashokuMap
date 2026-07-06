@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import AdminTokenField from "@/components/AdminTokenField";
+import AdminGate from "@/components/AdminGate";
 import AdminAuditDetail from "@/components/AdminAuditDetail";
 
 export const metadata: Metadata = { title: "操作ログ詳細(管理)" };
@@ -28,18 +28,17 @@ export default async function AdminAuditDetailPage({
       </header>
 
       <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-6 sm:px-6">
-        <div className="mb-4">
-          <AdminTokenField />
-        </div>
-        <div className="mb-4">
-          <Link
-            href="/mayuchan/audit"
-            className="text-sm text-orange-800 hover:text-orange-900"
-          >
-            ← 操作ログ一覧へ戻る
-          </Link>
-        </div>
-        <AdminAuditDetail id={id} />
+        <AdminGate>
+          <div className="mb-4">
+            <Link
+              href="/mayuchan/audit"
+              className="text-sm text-orange-800 hover:text-orange-900"
+            >
+              ← 操作ログ一覧へ戻る
+            </Link>
+          </div>
+          <AdminAuditDetail id={id} />
+        </AdminGate>
       </main>
     </div>
   );

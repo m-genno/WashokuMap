@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import AdminTokenField from "@/components/AdminTokenField";
+import AdminGate from "@/components/AdminGate";
 
 export const metadata: Metadata = { title: "管理" };
 
@@ -24,10 +24,7 @@ export default function AdminHome() {
           の値を下のトークン欄に入力してください(未入力では操作できません)。
         </p>
 
-        <div className="mb-5">
-          <AdminTokenField />
-        </div>
-
+        <AdminGate>
         <div className="grid gap-3 sm:grid-cols-2">
           <Link
             href="/mayuchan/reservations"
@@ -93,6 +90,7 @@ export default function AdminHome() {
             </p>
           </Link>
         </div>
+        </AdminGate>
       </main>
     </div>
   );

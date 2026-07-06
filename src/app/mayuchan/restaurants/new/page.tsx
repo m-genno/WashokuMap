@@ -2,7 +2,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { query } from "@/lib/db";
 import RestaurantForm, { type GenreOption } from "@/components/RestaurantForm";
-import AdminTokenField from "@/components/AdminTokenField";
+import AdminGate from "@/components/AdminGate";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "店舗を登録(管理)" };
@@ -31,10 +31,9 @@ export default async function NewRestaurantPage() {
       </header>
 
       <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-6 sm:px-6">
-        <div className="mb-4">
-          <AdminTokenField />
-        </div>
-        <RestaurantForm genres={options} />
+        <AdminGate>
+          <RestaurantForm genres={options} />
+        </AdminGate>
       </main>
     </div>
   );
