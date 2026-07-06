@@ -140,12 +140,12 @@ docker exec washoku-db psql -U postgres -d washokumap -c "delete from reservatio
 
 ## 6. 環境変数(`.env.local`)
 
-`.env.example` をコピーして使う。**未設定でもローカル開発は動く**(メール/翻訳等はログ出力にフォールバック)。
+`.env.example` をコピーして使う。公開画面は未設定でも動く(メール/翻訳等はログ出力にフォールバック)が、**管理画面を使うには `ADMIN_TOKEN` が必須**。
 
 | 変数 | 用途 | 未設定時 |
 |---|---|---|
 | `DATABASE_URL` | DB接続先 | ローカル既定(`…@localhost:55432/washokumap`)|
-| `ADMIN_TOKEN` | 管理API保護 | 開発は開放(本番は必須) |
+| `ADMIN_TOKEN` | 管理API保護 | 管理APIは常に拒否(開発でも必須) |
 | `RESEND_API_KEY` 他 | メール送信 | 送らずログ出力 |
 | `DEEPL_API_KEY` | 翻訳 | 翻訳なし(原文のみ) |
 | `UPLOAD_DIR` | 画像保存先 | `./uploads` |

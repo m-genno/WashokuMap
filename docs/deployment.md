@@ -77,7 +77,7 @@
 
 ## 4. このアプリのデプロイ前チェックリスト
 
-- [ ] **`ADMIN_TOKEN` を必ず設定**(未設定だと管理APIが開放される)。
+- [ ] **`ADMIN_TOKEN` を必ず設定**(未設定だと管理APIは全拒否となり、管理画面が使えない)。
 - [ ] **PostGIS を有効化**(`create extension postgis;` / `0001_extensions.sql`)。
 - [ ] **マイグレーションを本番DBへ適用**: `DATABASE_URL`(必要なら `DATABASE_SSL=true`)を本番に向けて `node scripts/migrate.mjs`(= `npm run db:migrate`)。冪等で未適用分だけ走るので**デプロイのたびに実行**してよい。CI/デプロイ手順に組み込む(docker init マウントは本番では使わない)。詳細は [`db/README.md`](../db/README.md)。
 - [ ] **`UPLOAD_DIR` を永続化**(構成A: 永続ディスク / 構成B: S3・R2へ移行)。

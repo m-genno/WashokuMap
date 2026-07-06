@@ -20,8 +20,8 @@ export default function AdminHome() {
 
       <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-6 sm:px-6">
         <p className="mb-4 text-sm text-stone-600">
-          店舗データの投入(運用者向け)。本番では <code>ADMIN_TOKEN</code>{" "}
-          を設定し、下のトークンを入力してください。
+          店舗データの投入(運用者向け)。環境変数 <code>ADMIN_TOKEN</code>{" "}
+          の値を下のトークン欄に入力してください(未入力では操作できません)。
         </p>
 
         <div className="mb-5">

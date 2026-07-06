@@ -1,7 +1,7 @@
 "use client";
 
 // 運用者トークンをセッション内(sessionStorage)に保持し、管理APIへ送る。
-// 認証実装までの暫定。ADMIN_TOKEN 未設定の開発環境では空でも通る。
+// 認証実装までの暫定。サーバ側の ADMIN_TOKEN と一致が必須(未設定環境では管理APIは拒否)。
 
 const KEY = "wm.adminToken";
 
