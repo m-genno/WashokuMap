@@ -131,6 +131,8 @@ const ERROR_LABELS: Record<string, string> = {
   invalid_status: "公開状態が不正です",
   no_location_for_publish:
     "位置情報がないため公開できません。住所を入力するか緯度経度を設定してください。",
+  invalid_website_url: "サイトURLは http(s):// で始まる必要があります",
+  invalid_reservation_url: "予約URLは http(s):// で始まる必要があります",
   invalid_photo_url: "写真URLは http(s):// で始まる必要があります",
   photos_too_many: "写真が多すぎます(最大20枚)",
   invalid_hours_day: "営業時間の曜日が不正です",

@@ -52,11 +52,21 @@ type Exec = (sql: string, params: unknown[]) => Promise<unknown>;
 
 const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
 
+/** http(s) スキームのみ許可(javascript: 等によるストアドXSS防止)。 */
+const HTTP_URL_RE = /^https?:\/\//i;
+
 /**
- * 写真/営業時間の入力を検証する。問題があればエラーコード文字列、無ければ null。
+ * サイトURL/予約URL/写真/営業時間の入力を検証する。
+ * 問題があればエラーコード文字列、無ければ null。
  * URL が空の写真行・時刻が空の営業時間行は「未入力」として無視する。
  */
 export function validateExtras(input: RestaurantInput): string | null {
+  const website = input.websiteUrl?.trim();
+  if (website && !HTTP_URL_RE.test(website)) return "invalid_website_url";
+  const reservation = input.reservationUrl?.trim();
+  if (reservation && !HTTP_URL_RE.test(reservation)) {
+    return "invalid_reservation_url";
+  }
   if (input.photos) {
     if (input.photos.length > 20) return "photos_too_many";
     for (const p of input.photos) {
@@ -685,6 +695,15 @@ export function rowToInput(
     priceRange = p;
   }
 
+  const websiteUrl = raw.website_url?.trim() || null;
+  if (websiteUrl && !HTTP_URL_RE.test(websiteUrl)) {
+    return `website_url は http(s):// で始まる必要があります: ${websiteUrl}`;
+  }
+  const reservationUrl = raw.reservation_url?.trim() || null;
+  if (reservationUrl && !HTTP_URL_RE.test(reservationUrl)) {
+    return `reservation_url は http(s):// で始まる必要があります: ${reservationUrl}`;
+  }
+
   const genres = (raw.genres ?? "")
     .split(/[;|]/)
     .map((s) => s.trim())
@@ -695,10 +714,10 @@ export function rowToInput(
     nameEn: raw.name_en?.trim() || null,
     address: raw.address?.trim() || null,
     phone: raw.phone?.trim() || null,
-    websiteUrl: raw.website_url?.trim() || null,
+    websiteUrl,
     genres,
     reservationMode: mode as ReservationMode,
-    reservationUrl: raw.reservation_url?.trim() || null,
+    reservationUrl,
     priceRange,
     listingType: mode === "external" ? "listed" : "unlisted",
     source: "csv",

@@ -99,10 +99,10 @@
   | `name_en` | | 英語名 |
   | `address` | 推奨 | 住所(ジオコーディングで地図表示) |
   | `phone` | | 電話番号 |
-  | `website_url` | | Webサイト |
+  | `website_url` | | Webサイト(`http(s)://` で始まるURLのみ) |
   | `genres` | | ジャンルコードを `;` 区切り(例 `sushi;izakaya`) |
   | `reservation_mode` | | `request` / `external` / `phone_only`(既定 `request`) |
-  | `reservation_url` | | 外部予約URL |
+  | `reservation_url` | | 外部予約URL(`http(s)://` で始まるURLのみ) |
   | `price_range` | | 1〜4 |
 
 - ジャンルコード: `sushi, tempura, soba, udon, unagi, yakitori, tonkatsu, ramen, izakaya, kaiseki, teppanyaki, shabushabu, sukiyaki, donburi, washoku`
