@@ -20,8 +20,23 @@ function safeEqual(a: string, b: string): boolean {
   return diff === 0;
 }
 
+// SITE_LOCK の対象外パス。管理画面/管理APIは x-admin-token による独自保護があり、
+// Basic 認証を重ねると管理UIの fetch(トークン未入力時の 401)でブラウザの
+// 認証ダイアログが毎回出てしまうため除外する。
+function isExempt(pathname: string): boolean {
+  return (
+    pathname === "/admin" ||
+    pathname.startsWith("/admin/") ||
+    pathname.startsWith("/api/admin/")
+  );
+}
+
 export function proxy(request: NextRequest) {
   if (process.env.SITE_LOCK !== "true") {
+    return NextResponse.next();
+  }
+
+  if (isExempt(request.nextUrl.pathname)) {
     return NextResponse.next();
   }
 
