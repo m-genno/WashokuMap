@@ -156,7 +156,7 @@ export default function AdminReservationList() {
         if (applied.to) params.set("to", applied.to);
         params.set("page", String(page));
         params.set("perPage", String(PER_PAGE));
-        const res = await fetch(`/api/admin/reservations?${params.toString()}`, {
+        const res = await fetch(`/api/mayuchan/reservations?${params.toString()}`, {
           headers: adminHeaders(),
         });
         if (cancelled) return;
@@ -202,7 +202,7 @@ export default function AdminReservationList() {
     setBusyId(id);
     setError("");
     try {
-      const res = await fetch(`/api/admin/reservations/${id}`, {
+      const res = await fetch(`/api/mayuchan/reservations/${id}`, {
         method: "PATCH",
         headers: adminHeaders(),
         body: JSON.stringify({ status }),

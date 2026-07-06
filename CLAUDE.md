@@ -15,9 +15,9 @@
 
 ## ディレクトリ地図(探索前に読む)
 - `src/app/` … ページ + APIルート(App Router)
-  - `api/admin/*` … 管理API(`isAdminAuthorized` でトークン保護)
+  - `api/mayuchan/*` … 管理API(`isAdminAuthorized` でトークン保護)
   - `api/restaurants` `api/reservations` `api/reviews` `api/uploads` … 公開/共通API
-  - `mayuchan/*` … 管理画面(推測されにくいパスに改名。APIは `api/admin/*` のまま)/
+  - `mayuchan/*` … 管理画面(推測されにくいパスに改名。管理APIも `api/mayuchan/*` に統一)/
     `restaurants/[id]` `search` `favorites` `offline` `reservations/[id]` … 公開画面
 - `src/lib/` … サーバ処理: `restaurants` `reservations` `reviews` `adminRestaurants` `adminAudit`
   `uploads` `i18n` `translation` `geocode` `notifications` `guestNotifications` `users` `serverLocale` `db`

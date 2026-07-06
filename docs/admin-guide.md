@@ -209,14 +209,14 @@
 
 掃除は手動でも実行できますが、匿名アップロードは投稿されないまま放置される画像で
 ディスクを圧迫し得るため、**cron 等での定期実行を推奨**します。エンドポイントは
-`POST /api/admin/uploads/cleanup`(要 `x-admin-token`)。
+`POST /api/mayuchan/uploads/cleanup`(要 `x-admin-token`)。
 
 - Linux サーバ(crontab)の例 — 毎日 4:00 に猶予24hで削除:
 
   ```
   0 4 * * * curl -sS -X POST -H "x-admin-token: $ADMIN_TOKEN" \
     -H "Content-Type: application/json" -d '{"dryRun":false,"olderThanHours":24}' \
-    https://<アプリのURL>/api/admin/uploads/cleanup >> /var/log/washokumap-cleanup.log 2>&1
+    https://<アプリのURL>/api/mayuchan/uploads/cleanup >> /var/log/washokumap-cleanup.log 2>&1
   ```
 
 - Render の場合: Cron Job サービス(または外部の cron 監視サービス)から同じ `curl` を実行。
@@ -247,7 +247,7 @@
 | `UPLOAD_DIR` | アップロード画像の保存先 | `./uploads` |
 | `UPLOAD_DIR_MAX_BYTES` | アップロード保存先全体の容量上限(バイト、`0`=無制限) | 2GiB |
 | `TRUSTED_PROXY_IPS` | 前段の信頼プロキシの IP/CIDR(カンマ区切り)。設定時のみ `X-Forwarded-For` からクライアントIPを特定 | XFFを信頼しない(レート制限は全体共有・監査IPは記録なし) |
-| `SITE_LOCK` | `true` でサイト全体を限定公開(全ページ/APIにブラウザの Basic 認証、パスワード=`ADMIN_TOKEN`、ユーザー名は任意)。`/mayuchan` 配下・`/api/admin/*`(独自トークン保護あり)と `x-admin-token` ヘッダ付きリクエストは素通し | 通常公開 |
+| `SITE_LOCK` | `true` でサイト全体を限定公開(全ページ/APIにブラウザの Basic 認証、パスワード=`ADMIN_TOKEN`、ユーザー名は任意)。`/mayuchan` 配下・`/api/mayuchan/*`(独自トークン保護あり)と `x-admin-token` ヘッダ付きリクエストは素通し | 通常公開 |
 | `RATE_LIMIT_DISABLED` | 公開APIのレート制限の無効化(テスト用) | 既定で有効 |
 
 > 公開API(検索・予約・口コミ投稿・通報・画像アップロード)には **IP単位の簡易レート制限**(インメモリ・単一ノード向け)と本文サイズ/入力長の上限があります。多ノード/サーバレス構成では共有ストア(Redis等)への置換を検討してください。

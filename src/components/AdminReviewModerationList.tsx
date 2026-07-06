@@ -56,7 +56,7 @@ export default function AdminReviewModerationList() {
       setError("");
       try {
         const res = await fetch(
-          `/api/admin/reviews?filter=${filter}&page=${page}&perPage=${PER_PAGE}`,
+          `/api/mayuchan/reviews?filter=${filter}&page=${page}&perPage=${PER_PAGE}`,
           { headers: adminHeaders() }
         );
         if (cancelled) return;
@@ -102,7 +102,7 @@ export default function AdminReviewModerationList() {
     setBusyId(id);
     setError("");
     try {
-      const res = await fetch(`/api/admin/reviews/${id}`, {
+      const res = await fetch(`/api/mayuchan/reviews/${id}`, {
         method: "PATCH",
         headers: adminHeaders(),
         body: JSON.stringify({ status }),

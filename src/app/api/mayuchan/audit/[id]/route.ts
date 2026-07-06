@@ -6,7 +6,7 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 /**
- * GET /api/admin/audit/[id]
+ * GET /api/mayuchan/audit/[id]
  * 監査ログ1件(操作ログ詳細画面用)。
  */
 export async function GET(

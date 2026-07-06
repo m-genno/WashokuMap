@@ -56,7 +56,7 @@ export default function AdminAuditList() {
       setError("");
       try {
         const res = await fetch(
-          `/api/admin/audit?action=${filter}&page=${page}&perPage=${PER_PAGE}`,
+          `/api/mayuchan/audit?action=${filter}&page=${page}&perPage=${PER_PAGE}`,
           { headers: adminHeaders() }
         );
         if (cancelled) return;

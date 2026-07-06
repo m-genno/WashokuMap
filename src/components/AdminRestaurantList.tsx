@@ -48,7 +48,7 @@ export default function AdminRestaurantList() {
       setError("");
       try {
         const res = await fetch(
-          `/api/admin/restaurants?status=${filter}&q=${encodeURIComponent(appliedQ)}&page=${page}&perPage=${PER_PAGE}`,
+          `/api/mayuchan/restaurants?status=${filter}&q=${encodeURIComponent(appliedQ)}&page=${page}&perPage=${PER_PAGE}`,
           { headers: adminHeaders() }
         );
         if (cancelled) return;
@@ -94,7 +94,7 @@ export default function AdminRestaurantList() {
     setBusyId(id);
     setError("");
     try {
-      const res = await fetch(`/api/admin/restaurants/${id}`, {
+      const res = await fetch(`/api/mayuchan/restaurants/${id}`, {
         method: "PATCH",
         headers: adminHeaders(),
         body: JSON.stringify({ status }),

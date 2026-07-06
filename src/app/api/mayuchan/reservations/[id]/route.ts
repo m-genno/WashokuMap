@@ -16,7 +16,7 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 /**
- * PATCH /api/admin/reservations/[id]  body: { status, note? }
+ * PATCH /api/mayuchan/reservations/[id]  body: { status, note? }
  * 予約の状態遷移(確定/お断り/完了/No-show/キャンセル等)。監査ログを記録。
  */
 export async function PATCH(

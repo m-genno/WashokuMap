@@ -81,7 +81,7 @@
 - [ ] **PostGIS を有効化**(`create extension postgis;` / `0001_extensions.sql`)。
 - [ ] **マイグレーションを本番DBへ適用**: `DATABASE_URL`(必要なら `DATABASE_SSL=true`)を本番に向けて `node scripts/migrate.mjs`(= `npm run db:migrate`)。冪等で未適用分だけ走るので**デプロイのたびに実行**してよい。CI/デプロイ手順に組み込む(docker init マウントは本番では使わない)。詳細は [`db/README.md`](../db/README.md)。
 - [ ] **`UPLOAD_DIR` を永続化**(構成A: 永続ディスク / 構成B: S3・R2へ移行)。
-- [ ] **孤立画像の掃除を cron で定期実行**(`POST /api/admin/uploads/cleanup`。手順は [`admin-guide.md`](./admin-guide.md) §8.1)。容量上限は `UPLOAD_DIR_MAX_BYTES`(既定 2GiB)をディスクサイズに合わせて調整。
+- [ ] **孤立画像の掃除を cron で定期実行**(`POST /api/mayuchan/uploads/cleanup`。手順は [`admin-guide.md`](./admin-guide.md) §8.1)。容量上限は `UPLOAD_DIR_MAX_BYTES`(既定 2GiB)をディスクサイズに合わせて調整。
 - [ ] **`TRUSTED_PROXY_IPS` を設定**(前段プロキシの IP/CIDR。未設定だと `X-Forwarded-For` を信頼せず、レート制限が全クライアント共有・監査ログのIPなしになる)。
 - [ ] 環境変数: `DATABASE_URL`(サーバレスはプーラ用)、`RESEND_API_KEY` / `NOTIFICATION_FROM_EMAIL`(+ 任意 `RESERVATION_DESK_EMAIL`)、`APP_BASE_URL`、任意 `DEEPL_API_KEY` / `GEOCODE_API_URL`。
 - [ ] (任意)**限定公開にする場合は `SITE_LOCK=true`**(全ページ/APIにブラウザの Basic 認証、パスワード=`ADMIN_TOKEN`。`/mayuchan` 配下は独自トークン保護のため対象外。`src/proxy.ts`)。一般公開に切り替えるときに削除する。

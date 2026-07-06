@@ -27,7 +27,7 @@ function isExempt(pathname: string): boolean {
   return (
     pathname === "/mayuchan" ||
     pathname.startsWith("/mayuchan/") ||
-    pathname.startsWith("/api/admin/")
+    pathname.startsWith("/api/mayuchan/")
   );
 }
 

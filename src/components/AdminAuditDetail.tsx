@@ -73,7 +73,7 @@ export default function AdminAuditDetail({ id }: { id: string }) {
     const run = async () => {
       setPhase({ kind: "loading" });
       try {
-        const res = await fetch(`/api/admin/audit/${id}`, {
+        const res = await fetch(`/api/mayuchan/audit/${id}`, {
           headers: adminHeaders(),
         });
         if (cancelled) return;

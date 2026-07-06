@@ -86,7 +86,7 @@ export default function ImportPage() {
     setPreviewing(true);
     setPreview(null);
     try {
-      const res = await fetch("/api/admin/restaurants/import/preview", {
+      const res = await fetch("/api/mayuchan/restaurants/import/preview", {
         method: "POST",
         headers: adminHeaders(),
         body: JSON.stringify({ rows: rowsToCheck }),
@@ -111,7 +111,7 @@ export default function ImportPage() {
   async function loadBatch(batchId: string) {
     try {
       const res = await fetch(
-        `/api/admin/restaurants?status=all&batch=${batchId}`,
+        `/api/mayuchan/restaurants?status=all&batch=${batchId}`,
         { headers: adminHeaders() }
       );
       const data = await res.json();
@@ -125,7 +125,7 @@ export default function ImportPage() {
     if (!result) return;
     setBusyId(id);
     try {
-      const res = await fetch(`/api/admin/restaurants/${id}`, {
+      const res = await fetch(`/api/mayuchan/restaurants/${id}`, {
         method: "PATCH",
         headers: adminHeaders(),
         body: JSON.stringify({ status }),
@@ -173,7 +173,7 @@ export default function ImportPage() {
     setBusy(true);
     setResult(null);
     try {
-      const res = await fetch("/api/admin/restaurants/import", {
+      const res = await fetch("/api/mayuchan/restaurants/import", {
         method: "POST",
         headers: adminHeaders(),
         body: JSON.stringify({ filename, rows }),

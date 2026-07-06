@@ -18,7 +18,7 @@ export const dynamic = "force-dynamic";
 const MODES = ["request", "external", "phone_only"];
 
 /**
- * GET /api/admin/restaurants/[id]
+ * GET /api/mayuchan/restaurants/[id]
  * 編集フォーム用に単一店舗(下書き含む)を返す。
  */
 export async function GET(
@@ -42,7 +42,7 @@ export async function GET(
 }
 
 /**
- * PUT /api/admin/restaurants/[id] — 店舗の編集(全項目更新)。
+ * PUT /api/mayuchan/restaurants/[id] — 店舗の編集(全項目更新)。
  */
 export async function PUT(
   req: NextRequest,
@@ -125,7 +125,7 @@ export async function PUT(
 }
 
 /**
- * PATCH /api/admin/restaurants/[id]  body: { status: 'draft'|'published'|'closed' }
+ * PATCH /api/mayuchan/restaurants/[id]  body: { status: 'draft'|'published'|'closed' }
  * 店舗のステータスを変更(公開/下書きに戻す/休止)。
  */
 export async function PATCH(

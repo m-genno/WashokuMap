@@ -1,18 +1,18 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { isAdminAuthorized } from "@/lib/adminAuth";
 import {
-  listReservationsForAdmin,
-  RESERVATION_STATUSES,
-  type ReservationStatusValue,
-} from "@/lib/reservations";
+  listReviewsForModeration,
+  type ModerationFilter,
+} from "@/lib/reviews";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+const FILTERS = ["reported", "hidden", "all"];
+
 /**
- * GET /api/admin/reservations?status=...&q=...&from=YYYY-MM-DD&to=YYYY-MM-DD&page=1&perPage=50
- * 予約デスク向けの予約一覧。status 省略時は requested(要対応)。
- * q はお客様名/店名/メール/電話、from/to は希望日時の範囲で絞り込む。
+ * GET /api/mayuchan/reviews?filter=reported|hidden|all&page=1&perPage=50
+ * モデレーション対象の口コミ一覧。filter 省略時は reported。
  * page は1始まり。total で総件数を返す。
  */
 export async function GET(req: NextRequest) {
@@ -21,14 +21,9 @@ export async function GET(req: NextRequest) {
   }
 
   const sp = req.nextUrl.searchParams;
-  const raw = sp.get("status") ?? "requested";
-  let status: ReservationStatusValue | null;
-  if (raw === "all") {
-    status = null;
-  } else if (RESERVATION_STATUSES.includes(raw as ReservationStatusValue)) {
-    status = raw as ReservationStatusValue;
-  } else {
-    return NextResponse.json({ error: "invalid_status" }, { status: 400 });
+  const filter = sp.get("filter") ?? "reported";
+  if (!FILTERS.includes(filter)) {
+    return NextResponse.json({ error: "invalid_filter" }, { status: 400 });
   }
 
   const pageRaw = Number(sp.get("page"));
@@ -41,23 +36,20 @@ export async function GET(req: NextRequest) {
       : 50;
 
   try {
-    const { reservations, total } = await listReservationsForAdmin({
-      status,
-      q: sp.get("q"),
-      from: sp.get("from"),
-      to: sp.get("to"),
+    const { reviews, total } = await listReviewsForModeration({
+      filter: filter as ModerationFilter,
       limit: perPage,
       offset: (page - 1) * perPage,
     });
     return NextResponse.json({
-      count: reservations.length,
+      count: reviews.length,
       total,
       page,
       perPage,
-      reservations,
+      reviews,
     });
   } catch (err) {
-    console.error("admin list reservations failed:", err);
+    console.error("admin list reviews failed:", err);
     return NextResponse.json({ error: "list_failed" }, { status: 500 });
   }
 }

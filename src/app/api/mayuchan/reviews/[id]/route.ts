@@ -7,7 +7,7 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 /**
- * PATCH /api/admin/reviews/[id]  body: { status: 'published' | 'hidden' }
+ * PATCH /api/mayuchan/reviews/[id]  body: { status: 'published' | 'hidden' }
  * 口コミを非表示/公開へ。評価キャッシュは DB トリガが再計算する。
  */
 export async function PATCH(

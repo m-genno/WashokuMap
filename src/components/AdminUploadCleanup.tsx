@@ -36,7 +36,7 @@ export default function AdminUploadCleanup() {
     setBusy(true);
     setError("");
     try {
-      const res = await fetch("/api/admin/uploads/cleanup", {
+      const res = await fetch("/api/mayuchan/uploads/cleanup", {
         method: "POST",
         headers: adminHeaders(),
         body: JSON.stringify({ dryRun, olderThanHours: hours }),

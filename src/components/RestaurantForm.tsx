@@ -9,7 +9,7 @@ export interface GenreOption {
   label: string;
 }
 
-/** 編集フォームの初期値(GET /api/admin/restaurants/[id] のレスポンス形)。 */
+/** 編集フォームの初期値(GET /api/mayuchan/restaurants/[id] のレスポンス形)。 */
 interface Initial {
   name: string;
   name_en: string | null;
@@ -172,7 +172,7 @@ export default function RestaurantForm({
     let cancelled = false;
     const load = async () => {
       try {
-        const res = await fetch(`/api/admin/restaurants/${restaurantId}`, {
+        const res = await fetch(`/api/mayuchan/restaurants/${restaurantId}`, {
           headers: adminHeaders(),
         });
         const data = await res.json().catch(() => ({}));
@@ -269,7 +269,7 @@ export default function RestaurantForm({
 
     try {
       const res = await fetch(
-        editing ? `/api/admin/restaurants/${restaurantId}` : "/api/admin/restaurants",
+        editing ? `/api/mayuchan/restaurants/${restaurantId}` : "/api/mayuchan/restaurants",
         {
           method: editing ? "PUT" : "POST",
           headers: adminHeaders(),

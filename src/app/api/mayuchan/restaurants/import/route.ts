@@ -13,7 +13,7 @@ interface ImportBody {
   rows?: Record<string, string>[];
 }
 
-/** POST /api/admin/restaurants/import — CSVパース済みの行を一括投入 */
+/** POST /api/mayuchan/restaurants/import — CSVパース済みの行を一括投入 */
 export async function POST(req: NextRequest) {
   if (!isAdminAuthorized(req)) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });

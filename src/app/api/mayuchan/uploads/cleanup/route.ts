@@ -12,7 +12,7 @@ interface Body {
 }
 
 /**
- * POST /api/admin/uploads/cleanup  body: { dryRun?, olderThanHours? }
+ * POST /api/mayuchan/uploads/cleanup  body: { dryRun?, olderThanHours? }
  * 孤立アップロード画像の確認(dryRun)・削除。実削除時は監査ログに記録。
  */
 export async function POST(req: NextRequest) {

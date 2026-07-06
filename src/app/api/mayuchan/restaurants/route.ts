@@ -16,7 +16,7 @@ export const dynamic = "force-dynamic";
 const MODES = ["request", "external", "phone_only"];
 
 /**
- * GET /api/admin/restaurants?status=draft|published|closed|all&q=...&page=1&perPage=50
+ * GET /api/mayuchan/restaurants?status=draft|published|closed|all&q=...&page=1&perPage=50
  * 管理用の店舗一覧(下書き含む)。status 省略時は draft、q で語句検索。
  * page は1始まり。total で総件数を返す。
  */
@@ -68,7 +68,7 @@ export async function GET(req: NextRequest) {
   }
 }
 
-/** POST /api/admin/restaurants — 人手登録(1店舗) */
+/** POST /api/mayuchan/restaurants — 人手登録(1店舗) */
 export async function POST(req: NextRequest) {
   if (!isAdminAuthorized(req)) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });

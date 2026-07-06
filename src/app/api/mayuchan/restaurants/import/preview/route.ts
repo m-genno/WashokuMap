@@ -12,7 +12,7 @@ interface PreviewBody {
 }
 
 /**
- * POST /api/admin/restaurants/import/preview
+ * POST /api/mayuchan/restaurants/import/preview
  * CSVパース済みの行を取込前にドライラン判定(新規/更新/失敗)。書き込みなし。
  */
 export async function POST(req: NextRequest) {
