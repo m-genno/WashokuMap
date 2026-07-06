@@ -389,6 +389,12 @@ export default function AdminReservationList() {
                   >
                     {STATUS_LABEL[r.status]}
                   </span>
+                  <Link
+                    href={`/mayuchan/restaurants/${r.restaurant_id}/edit`}
+                    className="rounded-full border border-orange-300 px-3 py-1 text-xs font-medium text-orange-800 hover:bg-orange-50"
+                  >
+                    店舗を編集
+                  </Link>
                 </div>
 
                 <div className="mt-2 grid gap-x-4 gap-y-1 text-sm text-stone-700 sm:grid-cols-2">
