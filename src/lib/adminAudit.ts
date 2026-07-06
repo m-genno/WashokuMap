@@ -81,6 +81,22 @@ export interface AdminAuditList {
   total: number;
 }
 
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** 監査ログ1件(詳細画面用)。未存在や不正IDは null。 */
+export async function getAdminAuditEntry(
+  id: string
+): Promise<AdminAuditRow | null> {
+  if (!UUID_RE.test(id)) return null;
+  const rows = await query<AdminAuditRow>(
+    `SELECT id, action, target_type, target_id, summary, detail, actor, ip, created_at
+     FROM admin_audit_log WHERE id = $1`,
+    [id]
+  );
+  return rows[0] ?? null;
+}
+
 /** 監査ログ一覧(新しい順)。action 指定で絞り込み、offset/limit でページング。 */
 export async function listAdminAudit(opts: {
   action?: string | null;

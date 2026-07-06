@@ -322,15 +322,30 @@ export async function listRestaurantsForAdmin(opts: {
   return { restaurants, total: totals[0]?.total ?? 0 };
 }
 
-/** 店舗のステータスを変更(公開/下書きに戻す/休止)。未存在や不正IDは null。 */
+/**
+ * 店舗のステータスを変更(公開/下書きに戻す/休止)。未存在や不正IDは null。
+ * 監査ログ用に変更前の状態(from_status)も返す。
+ */
 export async function setRestaurantStatus(
   id: string,
   status: RestaurantStatus
-): Promise<{ id: string; name: string; status: RestaurantStatus } | null> {
+): Promise<{
+  id: string;
+  name: string;
+  status: RestaurantStatus;
+  from_status: RestaurantStatus;
+} | null> {
   if (!UUID_RE.test(id)) return null;
-  const rows = await query<{ id: string; name: string; status: RestaurantStatus }>(
-    `UPDATE restaurant SET status = $2 WHERE id = $1
-     RETURNING id, name, status`,
+  const rows = await query<{
+    id: string;
+    name: string;
+    status: RestaurantStatus;
+    from_status: RestaurantStatus;
+  }>(
+    `UPDATE restaurant r SET status = $2
+     FROM (SELECT id, status AS from_status FROM restaurant WHERE id = $1 FOR UPDATE) prev
+     WHERE r.id = prev.id
+     RETURNING r.id, r.name, r.status, prev.from_status`,
     [id, status]
   );
   return rows[0] ?? null;
@@ -428,10 +443,29 @@ export interface FieldChange {
   to: unknown;
 }
 
+const DAY_KANJI = ["日", "月", "火", "水", "木", "金", "土"];
+
+/** 写真1件を差分表示用の短い文字列へ(ファイル名先頭+メイン/キャプション)。 */
+function photoLabel(p: AdminRestaurantDetail["photos"][number]): string {
+  const file = p.url.split("/").pop() ?? p.url;
+  const name = file.length > 12 ? `${file.slice(0, 8)}…` : file;
+  const marks = [
+    p.is_primary ? "メイン" : null,
+    p.caption?.trim() ? `「${p.caption.trim()}」` : null,
+  ].filter(Boolean);
+  return marks.length ? `${name}(${marks.join("・")})` : name;
+}
+
+/** 営業時間1行を差分表示用の文字列へ(例: 月 11:00〜14:00(ランチ))。 */
+function hourLabel(h: AdminRestaurantDetail["hours"][number]): string {
+  const note = h.note?.trim() ? `(${h.note.trim()})` : "";
+  return `${DAY_KANJI[h.day_of_week] ?? h.day_of_week} ${h.open_time}〜${h.close_time}${note}`;
+}
+
 /**
  * 編集前後(getRestaurantForAdmin の戻り)を比較し、変更フィールドの from/to を返す。
- * スカラ値は直接比較、genres は集合比較、photos/hours は件数の変化を記録する。
- * 監査ログ(before/after 差分)に用いる。
+ * スカラ値は直接比較、genres は集合比較、photos/hours は表示用文字列の配列で
+ * 内容まで比較する(同じ件数での差し替えも検知)。監査ログ(before/after 差分)に用いる。
  */
 export function diffRestaurantAdmin(
   before: AdminRestaurantDetail,
@@ -463,11 +497,15 @@ export function diffRestaurantAdmin(
   if (JSON.stringify(gb) !== JSON.stringify(ga)) {
     changes.genres = { from: gb, to: ga };
   }
-  if (before.photos.length !== after.photos.length) {
-    changes.photos = { from: before.photos.length, to: after.photos.length };
+  const pb = before.photos.map(photoLabel);
+  const pa = after.photos.map(photoLabel);
+  if (JSON.stringify(pb) !== JSON.stringify(pa)) {
+    changes.photos = { from: pb, to: pa };
   }
-  if (before.hours.length !== after.hours.length) {
-    changes.hours = { from: before.hours.length, to: after.hours.length };
+  const hb = before.hours.map(hourLabel);
+  const ha = after.hours.map(hourLabel);
+  if (JSON.stringify(hb) !== JSON.stringify(ha)) {
+    changes.hours = { from: hb, to: ha };
   }
   return changes;
 }

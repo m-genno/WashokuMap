@@ -347,14 +347,18 @@ export function isModerationStatus(s: string): s is ModerationStatus {
 /**
  * 口コミを非表示/公開に切り替える。評価キャッシュは DB トリガが再計算
  * (非表示にすると rating_avg/count から除外される)。
+ * 監査ログ用に変更前の状態(from_status)も返す。
  */
 export async function setReviewStatus(
   reviewId: string,
   status: ModerationStatus
-): Promise<{ id: string; status: string } | null> {
+): Promise<{ id: string; status: string; from_status: string } | null> {
   if (!UUID_RE.test(reviewId)) return null;
-  const rows = await query<{ id: string; status: string }>(
-    `UPDATE review SET status = $2 WHERE id = $1 RETURNING id, status`,
+  const rows = await query<{ id: string; status: string; from_status: string }>(
+    `UPDATE review r SET status = $2
+     FROM (SELECT id, status AS from_status FROM review WHERE id = $1 FOR UPDATE) prev
+     WHERE r.id = prev.id
+     RETURNING r.id, r.status, prev.from_status`,
     [reviewId, status]
   );
   return rows[0] ?? null;

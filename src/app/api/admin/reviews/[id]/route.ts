@@ -41,7 +41,11 @@ export async function PATCH(
       targetType: "review",
       targetId: id,
       summary: `口コミ: ${body.status === "hidden" ? "非表示" : "公開"}`,
-      detail: { status: body.status },
+      detail: {
+        changes: {
+          status: { from: updated.from_status, to: updated.status },
+        },
+      },
       actor: adminActor(req),
     });
     return NextResponse.json({ review: updated });

@@ -105,12 +105,32 @@ export async function POST(req: NextRequest) {
 
   try {
     const saved = await createRestaurant({ ...body, source: "manual" });
+    // 登録内容も差分形式(from: なし)で記録し、詳細画面で項目ごとに確認できるようにする。
+    const initialFields: [string, unknown][] = [
+      ["name", body.name],
+      ["name_en", body.nameEn],
+      ["description", body.description],
+      ["address", body.address],
+      ["phone", body.phone],
+      ["website_url", body.websiteUrl],
+      ["reservation_mode", body.reservationMode],
+      ["reservation_url", body.reservationUrl],
+      ["price_range", body.priceRange],
+      ["status", body.status ?? "draft"],
+      ["genres", body.genres?.length ? body.genres : null],
+      ["photos", body.photos?.length || null],
+      ["hours", body.hours?.length || null],
+    ];
+    const changes: Record<string, { from: null; to: unknown }> = {};
+    for (const [k, v] of initialFields) {
+      if (v != null && v !== "") changes[k] = { from: null, to: v };
+    }
     await recordAdminAudit({
       action: "restaurant.create",
       targetType: "restaurant",
       targetId: saved.id,
       summary: `登録: ${body.name}`,
-      detail: { status: body.status ?? "draft", geocoded: saved.geocoded },
+      detail: { status: body.status ?? "draft", geocoded: saved.geocoded, changes },
       actor: adminActor(req),
     });
     return NextResponse.json({ restaurant: saved }, { status: 201 });

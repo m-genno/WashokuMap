@@ -2,43 +2,21 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { adminHeaders } from "@/lib/adminClient";
 import Pagination from "./Pagination";
+import {
+  ACTION_BADGE,
+  ACTION_LABEL,
+  FIELD_LABEL,
+  fmtDate,
+  readChanges,
+  targetLink,
+  type AuditRow,
+} from "./auditPresentation";
 
 /** 操作履歴のため表示量は多め(1ページ100件)。 */
 const PER_PAGE = 100;
-
-interface Row {
-  id: string;
-  action: string;
-  target_type: string | null;
-  target_id: string | null;
-  summary: string | null;
-  detail: Record<string, unknown>;
-  actor: string;
-  ip: string | null;
-  created_at: string;
-}
-
-const ACTION_LABEL: Record<string, string> = {
-  "restaurant.create": "店舗登録",
-  "restaurant.update": "店舗編集",
-  "restaurant.status": "店舗状態",
-  "restaurant.import": "CSV取込",
-  "reservation.status": "予約対応",
-  "review.moderate": "口コミ対応",
-  "uploads.cleanup": "画像整理",
-};
-
-const ACTION_BADGE: Record<string, string> = {
-  "restaurant.create": "bg-emerald-100 text-emerald-800",
-  "restaurant.update": "bg-blue-100 text-blue-800",
-  "restaurant.status": "bg-amber-100 text-amber-800",
-  "restaurant.import": "bg-violet-100 text-violet-800",
-  "reservation.status": "bg-orange-100 text-orange-800",
-  "review.moderate": "bg-rose-100 text-rose-800",
-  "uploads.cleanup": "bg-stone-200 text-stone-700",
-};
 
 const FILTERS: { key: string; label: string }[] = [
   { key: "all", label: "すべて" },
@@ -50,74 +28,12 @@ const FILTERS: { key: string; label: string }[] = [
   { key: "review.moderate", label: "口コミ対応" },
 ];
 
-function fmt(iso: string): string {
-  return new Date(iso).toLocaleString("ja-JP", {
-    timeZone: "Asia/Tokyo",
-    year: "numeric",
-    month: "numeric",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
-
-const FIELD_LABEL: Record<string, string> = {
-  name: "店名",
-  name_en: "店名(英語)",
-  description: "紹介文",
-  address: "住所",
-  lat: "緯度",
-  lng: "経度",
-  phone: "電話",
-  website_url: "Webサイト",
-  reservation_mode: "予約方式",
-  reservation_url: "予約URL",
-  price_range: "価格帯",
-  status: "公開状態",
-  genres: "ジャンル",
-  photos: "写真数",
-  hours: "営業時間数",
-};
-
-interface FieldChange {
-  from: unknown;
-  to: unknown;
-}
-
-/** 差分の値を短く表示用に整形。 */
-function fmtVal(v: unknown): string {
-  if (v === null || v === undefined || v === "") return "(なし)";
-  if (Array.isArray(v)) return v.length ? v.join(", ") : "(なし)";
-  const s = String(v);
-  return s.length > 40 ? `${s.slice(0, 40)}…` : s;
-}
-
-/** detail.changes(あれば)を {field, from, to} の配列に変換。 */
-function readChanges(detail: Record<string, unknown>): {
-  field: string;
-  from: unknown;
-  to: unknown;
-}[] {
-  const raw = detail?.changes;
-  if (!raw || typeof raw !== "object") return [];
-  return Object.entries(raw as Record<string, FieldChange>).map(
-    ([field, ch]) => ({ field, from: ch?.from, to: ch?.to })
-  );
-}
-
-/** 監査対象へのリンク(店舗のみ編集画面へ)。 */
-function targetLink(r: Row): string | null {
-  if (r.target_type === "restaurant" && r.target_id) {
-    return `/admin/restaurants/${r.target_id}/edit`;
-  }
-  return null;
-}
-
 export default function AdminAuditList() {
+  const router = useRouter();
   const [filter, setFilter] = useState("all");
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
-  const [rows, setRows] = useState<Row[]>([]);
+  const [rows, setRows] = useState<AuditRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [reloadKey, setReloadKey] = useState(0);
@@ -237,7 +153,8 @@ export default function AdminAuditList() {
             return (
               <li
                 key={r.id}
-                className="rounded-xl border border-stone-200 bg-white p-3 text-sm shadow-sm"
+                onClick={() => router.push(`/admin/audit/${r.id}`)}
+                className="cursor-pointer rounded-xl border border-stone-200 bg-white p-3 text-sm shadow-sm transition-colors hover:border-orange-300"
               >
                 <div className="flex flex-wrap items-center gap-2">
                   <span
@@ -249,7 +166,7 @@ export default function AdminAuditList() {
                   </span>
                   <span className="text-stone-800">{r.summary}</span>
                   <span className="ml-auto text-xs text-stone-400">
-                    {fmt(r.created_at)}
+                    {fmtDate(r.created_at)}
                   </span>
                 </div>
                 <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs text-stone-500">
@@ -258,6 +175,7 @@ export default function AdminAuditList() {
                   {link ? (
                     <Link
                       href={link}
+                      onClick={(e) => e.stopPropagation()}
                       className="text-orange-800 hover:text-orange-900"
                     >
                       対象を開く →
@@ -267,23 +185,27 @@ export default function AdminAuditList() {
                       <span className="font-mono">{r.target_id.slice(0, 8)}</span>
                     )
                   )}
+                  <Link
+                    href={`/admin/audit/${r.id}`}
+                    onClick={(e) => e.stopPropagation()}
+                    className="ml-auto text-orange-800 hover:text-orange-900"
+                  >
+                    詳細 →
+                  </Link>
                 </div>
 
                 {changes.length > 0 && (
-                  <ul className="mt-2 flex flex-col gap-0.5 rounded-lg bg-stone-50 p-2 text-xs">
+                  <div className="mt-2 flex flex-wrap items-center gap-1 text-xs">
+                    <span className="text-stone-500">変更項目:</span>
                     {changes.map((c) => (
-                      <li key={c.field} className="flex flex-wrap gap-1">
-                        <span className="font-medium text-stone-600">
-                          {FIELD_LABEL[c.field] ?? c.field}:
-                        </span>
-                        <span className="text-stone-400 line-through">
-                          {fmtVal(c.from)}
-                        </span>
-                        <span className="text-stone-400">→</span>
-                        <span className="text-stone-800">{fmtVal(c.to)}</span>
-                      </li>
+                      <span
+                        key={c.field}
+                        className="rounded-full bg-stone-100 px-2 py-0.5 text-stone-700"
+                      >
+                        {FIELD_LABEL[c.field] ?? c.field}
+                      </span>
                     ))}
-                  </ul>
+                  </div>
                 )}
               </li>
             );

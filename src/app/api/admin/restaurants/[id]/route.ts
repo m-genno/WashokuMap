@@ -160,7 +160,11 @@ export async function PATCH(
       targetType: "restaurant",
       targetId: id,
       summary: `状態変更: ${updated.name} → ${updated.status}`,
-      detail: { status: updated.status },
+      detail: {
+        changes: {
+          status: { from: updated.from_status, to: updated.status },
+        },
+      },
       actor: adminActor(req),
     });
     return NextResponse.json({ restaurant: updated });

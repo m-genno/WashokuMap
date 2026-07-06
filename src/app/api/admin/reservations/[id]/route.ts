@@ -64,8 +64,13 @@ export async function PATCH(
       targetId: result.reservation.id,
       summary: `予約: ${result.reservation.from_status} → ${result.reservation.status}`,
       detail: {
-        from: result.reservation.from_status,
-        to: result.reservation.status,
+        changes: {
+          status: {
+            from: result.reservation.from_status,
+            to: result.reservation.status,
+          },
+        },
+        ...(body.note?.trim() ? { note: body.note.trim() } : {}),
       },
       actor: adminActor(req),
     });
