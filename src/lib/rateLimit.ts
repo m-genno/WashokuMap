@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { clientIp } from "./clientIp";
 
 /**
  * 公開APIの簡易レート制限と入力サイズガード。
@@ -23,13 +24,6 @@ function sweep(now: number): void {
   for (const [k, b] of store) if (b.resetAt <= now) store.delete(k);
 }
 
-/** クライアントIP(プロキシ経由の最初のホップ)。取得不能時は 'unknown'。 */
-export function clientIp(req: NextRequest): string {
-  const xff = req.headers.get("x-forwarded-for");
-  if (xff) return xff.split(",")[0]?.trim() || "unknown";
-  return req.headers.get("x-real-ip") || "unknown";
-}
-
 export interface RateOptions {
   /** ウィンドウ内の最大リクエスト数 */
   limit: number;
@@ -40,6 +34,8 @@ export interface RateOptions {
 /**
  * IP(+任意の補助キー)単位のレート制限。
  * 超過時は 429(Retry-After つき)の NextResponse、許容時は null を返す。
+ * IP は信頼プロキシ設定(TRUSTED_PROXY_IPS)経由でのみ特定する。
+ * 特定できない環境では全クライアント共有の 'unknown' バケットになる(fail-closed)。
  */
 export function enforceRateLimit(
   req: NextRequest,
@@ -52,7 +48,7 @@ export function enforceRateLimit(
   const now = Date.now();
   sweep(now);
 
-  const ip = clientIp(req);
+  const ip = clientIp(req) ?? "unknown";
   const key = `${name}:${ip}${keyExtra ? `:${keyExtra}` : ""}`;
   let b = store.get(key);
   if (!b || b.resetAt <= now) {

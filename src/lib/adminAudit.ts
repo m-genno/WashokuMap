@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import { type NextRequest } from "next/server";
+import { clientIp } from "./clientIp";
 import { query } from "./db";
 
 /**
@@ -15,12 +16,12 @@ export interface AdminActor {
   ip: string | null;
 }
 
-/** リクエストから操作者(トークンのハッシュ)と IP を導出する。 */
+/**
+ * リクエストから操作者(トークンのハッシュ)と IP を導出する。
+ * IP は信頼プロキシ設定(TRUSTED_PROXY_IPS)経由でのみ特定する(偽装値は記録しない)。
+ */
 export function adminActor(req: NextRequest): AdminActor {
-  const ip =
-    req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
-    req.headers.get("x-real-ip") ||
-    null;
+  const ip = clientIp(req);
   const token = req.headers.get("x-admin-token");
   const actor = token
     ? `admin:${createHash("sha256").update(token).digest("hex").slice(0, 8)}`

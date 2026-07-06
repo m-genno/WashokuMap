@@ -81,6 +81,7 @@
 - [ ] **PostGIS を有効化**(`create extension postgis;` / `0001_extensions.sql`)。
 - [ ] **マイグレーションを本番DBへ適用**: `DATABASE_URL`(必要なら `DATABASE_SSL=true`)を本番に向けて `node scripts/migrate.mjs`(= `npm run db:migrate`)。冪等で未適用分だけ走るので**デプロイのたびに実行**してよい。CI/デプロイ手順に組み込む(docker init マウントは本番では使わない)。詳細は [`db/README.md`](../db/README.md)。
 - [ ] **`UPLOAD_DIR` を永続化**(構成A: 永続ディスク / 構成B: S3・R2へ移行)。
+- [ ] **`TRUSTED_PROXY_IPS` を設定**(前段プロキシの IP/CIDR。未設定だと `X-Forwarded-For` を信頼せず、レート制限が全クライアント共有・監査ログのIPなしになる)。
 - [ ] 環境変数: `DATABASE_URL`(サーバレスはプーラ用)、`RESEND_API_KEY` / `NOTIFICATION_FROM_EMAIL`(+ 任意 `RESERVATION_DESK_EMAIL`)、`APP_BASE_URL`、任意 `DEEPL_API_KEY` / `GEOCODE_API_URL`。
 - [ ] **送信ドメインの SPF/DKIM 検証**(到達率)。
 - [ ] **Node 20+ を固定**(`engines` に明記)。コンテナ最小化に `next.config` の `output: "standalone"` を検討。
