@@ -16,7 +16,8 @@
   あわせて `SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY`(Settings → API)と、Supabase の Storage で **private バケット**(既定名 `uploads`、`SUPABASE_STORAGE_BUCKET` で変更可)を作成する。
   配信URLは従来どおり `/api/uploads/<name>`(アプリ経由)で、既存データのURL形式は変わらない。
 - **容量上限**: 無料枠が 1GB のため `UPLOAD_DIR_MAX_BYTES=900000000` 程度を推奨(既定 2GiB のままだと無料枠超過まで止まらない)。
-- **DB接続**: `DATABASE_URL` は Supabase の接続文字列(Render からは Session Pooler 推奨)+ `?sslmode=require`。
+- **DB接続**: `DATABASE_URL` は Supabase の接続文字列(Render からは Session Pooler 推奨)+ **`?sslmode=no-verify`**。
+  `require` だと pg が証明書を厳格検証し、Supabase 自前CAの証明書で `self-signed certificate in certificate chain` になる(確認済み)。`no-verify` は暗号化しつつ検証のみスキップ。
 
 
 ---

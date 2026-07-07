@@ -52,7 +52,9 @@ npm run db:migrate:status  # 適用済み / 未適用の一覧
 ### B. 本番 / 任意のマネージドPostgres
 
 `DATABASE_URL` を本番のものに向けてランナーを実行するだけ。SSL が必要な場合は
-`DATABASE_SSL=true`(または URL に `sslmode=require`)。
+URL に `sslmode=no-verify` を付けるか、`DATABASE_SSL=true`(URL に sslmode 指定なしの場合)。
+`sslmode=require` は pg が証明書を厳格検証するため、自前CA証明書のマネージドDB
+(Supabase 等)では `self-signed certificate in certificate chain` で失敗する。
 
 ```bash
 export DATABASE_URL="postgres://user:pass@host:5432/dbname"
