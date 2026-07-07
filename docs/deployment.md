@@ -9,6 +9,7 @@
 |4|メール|Resend|未|||
 |5|地図|OSM|未|||
 |6|翻訳|DeepL|未|||
+|7|死活監視|UptimeRobot|メール登録|無料|50モニタ・監視間隔5分まで|
 
 この構成に必要な設定(2026-07 実装済みの切り替え式ストレージ):
 
@@ -18,6 +19,11 @@
 - **容量上限**: 無料枠が 1GB のため `UPLOAD_DIR_MAX_BYTES=900000000` 程度を推奨(既定 2GiB のままだと無料枠超過まで止まらない)。
 - **DB接続**: `DATABASE_URL` は Supabase の接続文字列(Render からは Session Pooler 推奨)+ **`?sslmode=no-verify`**。
   `require` だと pg が証明書を厳格検証し、Supabase 自前CAの証明書で `self-signed certificate in certificate chain` になる(確認済み)。`no-verify` は暗号化しつつ検証のみスキップ。
+- **死活監視 / スリープ防止**: UptimeRobot でトップページを **5〜10分間隔で GET**。
+  Render 無料プランの「15分無アクセスでスリープ」を防ぎ(1サービス常時起動なら月750時間の枠内)、
+  トップページは DB を叩く動的ページのため Supabase の「1週間無アクセスで休止」対策も兼ねる。ダウン時はメール通知。
+  `SITE_LOCK=true` の間は 401 が返るが、アクセスとして扱われるためスリープ防止には有効
+  (監視を「正常」にしたい場合は UptimeRobot 側に Basic 認証を設定。パスワード= `ADMIN_TOKEN`)。
 
 
 ---
@@ -113,6 +119,7 @@
 - [ ] **送信ドメインの SPF/DKIM 検証**(到達率)。
 - [ ] セキュリティヘッダ(CSP / X-Frame-Options / X-Content-Type-Options / Referrer-Policy)は `next.config.ts` の `headers()` で全ルートに付与済み。CDN/プロキシ側で**上書き・削除していないか**を確認。
 - [ ] **Node 20+ を固定**(`engines` に明記)。コンテナ最小化に `next.config` の `output: "standalone"` を検討。
+- [ ] **死活監視**: UptimeRobot で公開URLを5〜10分間隔で GET(無料プランのスリープ防止 + ダウン通知。Supabase の休止対策も兼ねる)。
 - [ ] HTTPS / 独自ドメイン、**DBの自動バックアップ**、(任意)エラー監視(Sentry等)。
 - [ ] 地図: 商用・高トラフィック化したらキー付きプロバイダへ切替(`GEOCODE_API_URL` とタイル設定 `src/components/RestaurantMap.tsx`)。
 
