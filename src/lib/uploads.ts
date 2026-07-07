@@ -1,21 +1,15 @@
 import { randomUUID } from "node:crypto";
-import {
-  mkdir,
-  readFile,
-  readdir,
-  stat,
-  unlink,
-  writeFile,
-} from "node:fs/promises";
-import path from "node:path";
 import sharp from "sharp";
 import { query } from "./db";
+import { uploadStorage, type UploadStorage } from "./uploadStorage";
 
 /**
- * 画像アップロードのローカル保存(軽量化・サムネ生成つき)。
+ * 画像アップロードの保存(軽量化・サムネ生成つき)。
  *
- * 外部ストレージ(S3等)を増やさず、ローカルファイルシステムに保存して
- * /api/uploads/<name> で配信する。保存先は UPLOAD_DIR(既定: ./uploads)。
+ * 保存先は uploadStorage.ts のバックエンド(UPLOAD_STORAGE で切り替え):
+ *   - local(既定) … ローカルFS(UPLOAD_DIR、既定 ./uploads)
+ *   - supabase     … Supabase Storage(Render 等の揮発FS環境向け)
+ * どちらでも配信は /api/uploads/<name> で行い、URL形式は変わらない。
  *
  * アップロード時に sharp で2サイズを生成する:
  *   - 表示用 url:    最大 1600px / WebP q80(EXIF 回転を反映、メタデータ除去)
@@ -28,7 +22,7 @@ export const MAX_UPLOAD_BYTES = 5 * 1024 * 1024; // 5MB(入力上限)
 const DEFAULT_DIR_MAX_BYTES = 2 * 1024 * 1024 * 1024; // 2GiB(保存先全体の既定上限)
 
 /**
- * 保存先ディレクトリ全体の容量上限(バイト)。ディスク圧迫DoSの防止弁。
+ * 保存先全体の容量上限(バイト)。ディスク/ストレージ圧迫DoSの防止弁。
  * UPLOAD_DIR_MAX_BYTES で上書き、0 を指定すると無効(無制限)。
  */
 function maxDirBytes(): number {
@@ -39,36 +33,29 @@ function maxDirBytes(): number {
   return Math.floor(n);
 }
 
-// ディレクトリ合計サイズのキャッシュ(アップロード毎の全走査を避ける)。
+// 保存先合計サイズのキャッシュ(アップロード毎の全走査/一覧APIを避ける)。
 // 書き込みで加算し、掃除(削除)で破棄する。多少の誤差は上限の性質上許容。
-let dirSizeCache: { dir: string; bytes: number; computedAt: number } | null =
-  null;
-const DIR_SIZE_CACHE_MS = 60_000;
+let sizeCache: { key: string; bytes: number; computedAt: number } | null = null;
+const SIZE_CACHE_MS = 60_000;
 
-async function uploadDirBytes(dir: string): Promise<number> {
+async function storedBytes(storage: UploadStorage): Promise<number> {
   const now = Date.now();
   if (
-    dirSizeCache &&
-    dirSizeCache.dir === dir &&
-    now - dirSizeCache.computedAt < DIR_SIZE_CACHE_MS
+    sizeCache &&
+    sizeCache.key === storage.id &&
+    now - sizeCache.computedAt < SIZE_CACHE_MS
   ) {
-    return dirSizeCache.bytes;
+    return sizeCache.bytes;
   }
   let bytes = 0;
   try {
-    const files = await readdir(dir);
-    for (const name of files) {
-      try {
-        const st = await stat(path.join(dir, name));
-        if (st.isFile()) bytes += st.size;
-      } catch {
-        // 走査中に消えたファイル等は無視
-      }
-    }
-  } catch {
-    bytes = 0; // ディレクトリ未作成 = 空
+    for (const obj of await storage.list()) bytes += obj.size;
+  } catch (err) {
+    // 集計に失敗しても保存自体は試みる(上限チェックは防止弁であり厳密でなくてよい)
+    console.error("[uploads] size scan failed:", err);
+    bytes = 0;
   }
-  dirSizeCache = { dir, bytes, computedAt: now };
+  sizeCache = { key: storage.id, bytes, computedAt: now };
   return bytes;
 }
 
@@ -89,12 +76,6 @@ const EXT_MIME: Record<string, string> = {
 export function isUploadUrl(url: string): boolean {
   const m = /^\/api\/uploads\/([^/?#]+)$/.exec(url);
   return !!m && NAME_RE.test(m[1]);
-}
-
-function uploadDir(): string {
-  return process.env.UPLOAD_DIR
-    ? path.resolve(process.env.UPLOAD_DIR)
-    : path.join(process.cwd(), "uploads");
 }
 
 export type SaveResult =
@@ -132,10 +113,10 @@ export async function saveImage(buffer: Buffer): Promise<SaveResult> {
     return { ok: false, reason: "unsupported_type" };
   }
 
-  const dir = uploadDir();
+  const storage = uploadStorage();
   const cap = maxDirBytes();
   if (cap > 0) {
-    const used = await uploadDirBytes(dir);
+    const used = await storedBytes(storage);
     if (used + full.length + thumb.length > cap) {
       console.error(
         `[uploads] storage cap reached (${used}/${cap} bytes). ` +
@@ -149,11 +130,10 @@ export async function saveImage(buffer: Buffer): Promise<SaveResult> {
   const fullName = `${id}.webp`;
   const thumbName = `${id}-t.webp`;
   try {
-    await mkdir(dir, { recursive: true });
-    await writeFile(path.join(dir, fullName), full);
-    await writeFile(path.join(dir, thumbName), thumb);
-    if (dirSizeCache && dirSizeCache.dir === dir) {
-      dirSizeCache.bytes += full.length + thumb.length;
+    await storage.put(fullName, full, "image/webp");
+    await storage.put(thumbName, thumb, "image/webp");
+    if (sizeCache && sizeCache.key === storage.id) {
+      sizeCache.bytes += full.length + thumb.length;
     }
     return {
       ok: true,
@@ -196,7 +176,7 @@ export async function cleanupOrphanUploads(
 ): Promise<CleanupReport> {
   const olderThanHours = Math.max(0, opts.olderThanHours ?? 24);
   const dryRun = opts.dryRun ?? false;
-  const dir = uploadDir();
+  const storage = uploadStorage();
 
   const rows = await query<{ url: string | null; thumb_url: string | null }>(
     `SELECT url, thumb_url FROM review_photo
@@ -211,11 +191,12 @@ export async function cleanupOrphanUploads(
     if (b) referenced.add(b);
   }
 
-  let files: string[] = [];
+  let files: Awaited<ReturnType<UploadStorage["list"]>> = [];
   try {
-    files = await readdir(dir);
-  } catch {
-    files = []; // ディレクトリ未作成 = 何もない
+    files = await storage.list();
+  } catch (err) {
+    console.error("[uploads] cleanup list failed:", err);
+    files = []; // 一覧できなければ何も消さない(安全側)
   }
 
   const cutoff = Date.now() - olderThanHours * 3_600_000;
@@ -225,36 +206,29 @@ export async function cleanupOrphanUploads(
   let freedBytes = 0;
   let skippedRecent = 0;
 
-  for (const name of files) {
-    if (!NAME_RE.test(name)) continue; // 管理対象外は触らない
+  for (const file of files) {
+    if (!NAME_RE.test(file.name)) continue; // 管理対象外は触らない
     scanned++;
-    if (referenced.has(name)) continue;
-
-    let st;
-    try {
-      st = await stat(path.join(dir, name));
-    } catch {
-      continue;
-    }
-    if (st.mtimeMs > cutoff) {
+    if (referenced.has(file.name)) continue;
+    if (file.mtimeMs > cutoff) {
       skippedRecent++;
       continue;
     }
 
     orphans++;
-    freedBytes += st.size;
+    freedBytes += file.size;
     if (!dryRun) {
       try {
-        await unlink(path.join(dir, name));
+        await storage.remove(file.name);
         deleted++;
       } catch (err) {
-        console.error("[uploads] unlink failed:", name, err);
-        freedBytes -= st.size; // 失敗分は戻す
+        console.error("[uploads] delete failed:", file.name, err);
+        freedBytes -= file.size; // 失敗分は戻す
       }
     }
   }
 
-  if (!dryRun && deleted > 0) dirSizeCache = null; // 容量キャッシュを再計算させる
+  if (!dryRun && deleted > 0) sizeCache = null; // 容量キャッシュを再計算させる
 
   return {
     scanned,
@@ -273,10 +247,7 @@ export async function readImage(
 ): Promise<{ buffer: Buffer; mime: string } | null> {
   if (!NAME_RE.test(name)) return null; // トラバーサル/不正名を拒否
   const ext = name.split(".").pop() as string;
-  try {
-    const buffer = await readFile(path.join(uploadDir(), name));
-    return { buffer, mime: EXT_MIME[ext] };
-  } catch {
-    return null;
-  }
+  const buffer = await uploadStorage().get(name);
+  if (!buffer) return null;
+  return { buffer, mime: EXT_MIME[ext] };
 }

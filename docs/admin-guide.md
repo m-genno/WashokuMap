@@ -225,7 +225,7 @@
 
 ### 8.2 容量上限(自動の防止弁)
 
-保存先(`UPLOAD_DIR`)全体の容量が **`UPLOAD_DIR_MAX_BYTES`(既定 2GiB)** に達すると、
+保存先(ローカルFS / Supabase Storage のどちらでも)全体の容量が **`UPLOAD_DIR_MAX_BYTES`(既定 2GiB)** に達すると、
 新規アップロードは 507 で拒否されます(既存データは消えません)。到達した場合は
 孤立画像の掃除を実行するか、上限を引き上げてください。
 
@@ -245,15 +245,19 @@
 | `APP_BASE_URL` | 公開URL(オリジン) | お客様メールに状況ページURLを載せない |
 | `DEEPL_API_KEY` | 要望・口コミの日本語訳 | 翻訳なし(原文のみ) |
 | `GEOCODE_API_URL` | 住所→緯度経度 | 既定の Nominatim(OSM) |
-| `UPLOAD_DIR` | アップロード画像の保存先 | `./uploads` |
-| `UPLOAD_DIR_MAX_BYTES` | アップロード保存先全体の容量上限(バイト、`0`=無制限) | 2GiB |
+| `UPLOAD_STORAGE` | アップロード画像の保存バックエンド(`local` / `supabase`) | `local`(ローカルFS) |
+| `UPLOAD_DIR` | `local` 時の保存先ディレクトリ | `./uploads` |
+| `SUPABASE_URL` | `supabase` 時のプロジェクトURL(Settings → API) | `supabase` 選択時は必須 |
+| `SUPABASE_SERVICE_ROLE_KEY` | `supabase` 時の service_role キー(**公開厳禁**) | `supabase` 選択時は必須 |
+| `SUPABASE_STORAGE_BUCKET` | `supabase` 時のバケット名(private で事前作成) | `uploads` |
+| `UPLOAD_DIR_MAX_BYTES` | アップロード保存先全体の容量上限(バイト、`0`=無制限)。両バックエンドに有効 | 2GiB |
 | `TRUSTED_PROXY_IPS` | 前段の信頼プロキシの IP/CIDR(カンマ区切り)。設定時のみ `X-Forwarded-For` からクライアントIPを特定 | XFFを信頼しない(レート制限は全体共有・監査IPは記録なし) |
 | `SITE_LOCK` | `true` でサイト全体を限定公開(全ページ/APIにブラウザの Basic 認証、パスワード=`ADMIN_TOKEN`、ユーザー名は任意)。`/mayuchan` 配下・`/api/mayuchan/*`(独自トークン保護あり)と `x-admin-token` ヘッダ付きリクエストは素通し | 通常公開 |
 | `RATE_LIMIT_DISABLED` | 公開APIのレート制限の無効化(テスト用) | 既定で有効 |
 
 > 公開API(検索・予約・口コミ投稿・通報・画像アップロード)には **IP単位の簡易レート制限**(インメモリ・単一ノード向け)と本文サイズ/入力長の上限があります。多ノード/サーバレス構成では共有ストア(Redis等)への置換を検討してください。
 
-> 注意: `.env*` は Git 管理外です(`.env.example` のみコミット)。本番では永続化が必要なアップロードは `UPLOAD_DIR` を永続ボリュームに(将来はオブジェクトストレージ化)してください。
+> 注意: `.env*` は Git 管理外です(`.env.example` のみコミット)。本番でアップロード画像を永続化するには、`UPLOAD_STORAGE=supabase`(Supabase Storage)にするか、`UPLOAD_DIR` を永続ボリュームに向けてください。
 
 ---
 
@@ -288,7 +292,7 @@ npm run dev          # http://localhost:3000
 | 4 | **ジオコーディング**(住所→緯度経度) | OpenStreetMap Foundation(Nominatim、現状) | 環境変数 `GEOCODE_API_URL`(未設定時は公開Nominatim) | 現状無料。商用・大量は有料/自前運用へ | 必須(現状はアカウント不要) |
 | 5 | **データベース**(PostgreSQL+PostGIS) | マネージドDB提供元(例: Supabase / Neon / AWS RDS) | 環境変数 `DATABASE_URL` | 無料枠あり → Pro 約 $20〜25/月 | 本番で必須 |
 | 6 | **ホスティング**(アプリ配信) | Vercel, Inc.(想定。Next.js) | 各社の管理コンソール(リポジトリ連携・環境変数設定) | Hobby 無料 / Pro 約 $20/月 | 本番で必須 |
-| 7 | **画像ストレージ**(将来) | オブジェクトストレージ提供元(例: AWS S3 / Cloudflare R2) | 環境変数 `UPLOAD_DIR`(現状はローカルFS)→ 将来はストレージ接続情報 | 従量(小規模は数百円/月) | 将来必須(サーバレス/多ノード化時) |
+| 7 | **画像ストレージ** | Supabase, Inc.(Supabase Storage)またはローカルFS | 環境変数 `UPLOAD_STORAGE`(`supabase` 時は `SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY` / `SUPABASE_STORAGE_BUCKET`、`local` 時は `UPLOAD_DIR`) | 無料枠 1GB・転送 5GB/月 → Pro 約 $25/月(DBと共用) | 本番で必須(揮発FS環境では `supabase`) |
 | 8 | **ドメイン** | レジストラ(例: お名前.com / Google Domains 等) | DNS設定(env外)。アプリ側は `APP_BASE_URL` に反映 | 約 1,500〜3,000円/年 | 本番で必須 |
 | 9 | **ソースコード / CI** | GitHub, Inc. | リポジトリ `m-genno/WashokuMap`(env外) | 無料 / Team 約 $4/ユーザ/月 | 開発で必須 |
 | 10 | **(将来)OAuth ログイン** | Google LLC / Apple Inc. | 環境変数(クライアントID等。未実装) | Google: 無料 / Apple Developer Program: 約 15,000円/年 | 任意(ログイン連携時) |
@@ -301,7 +305,7 @@ npm run dev          # http://localhost:3000
 外部アカウントの「内容(キー・接続情報)」がシステムのどこに入るか:
 
 - **環境変数**(`.env.local`(ローカル)/ 本番の環境変数。雛形は `.env.example`):
-  `DATABASE_URL`, `RESEND_API_KEY`, `NOTIFICATION_FROM_EMAIL`, `RESERVATION_DESK_EMAIL`, `DEEPL_API_KEY`, `DEEPL_API_URL`, `GEOCODE_API_URL`, `APP_BASE_URL`, `UPLOAD_DIR`, `ADMIN_TOKEN`
+  `DATABASE_URL`, `RESEND_API_KEY`, `NOTIFICATION_FROM_EMAIL`, `RESERVATION_DESK_EMAIL`, `DEEPL_API_KEY`, `DEEPL_API_URL`, `GEOCODE_API_URL`, `APP_BASE_URL`, `UPLOAD_STORAGE`, `UPLOAD_DIR`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_STORAGE_BUCKET`, `ADMIN_TOKEN`
   - `.env*` は **Git管理外**(`.env.example` のみコミット)。キーをコミットしないこと。
 - **ソースコード**: 地図タイルのプロバイダ/帰属表示は現状 `src/components/RestaurantMap.tsx` にハードコード。
   キー付きプロバイダ(MapTiler/Mapbox等)へ切り替える際は、URL・キーを**環境変数化**して差し替えてください。
@@ -321,7 +325,7 @@ npm run dev          # http://localhost:3000
 ### 11.4 本番移行時に検討する切り替え
 
 - **地図/ジオコーディング**: 公開 OSM/Nominatim は**商用・高トラフィック非推奨**。トラフィックが増えたら MapTiler / Mapbox / Google などの**キー付き有料サービス**へ。`GEOCODE_API_URL` とタイル設定を差し替え。
-- **画像ストレージ**: ローカルFS(`UPLOAD_DIR`)はコンテナ再作成で消えるため、本番は**永続ボリュームまたは S3/R2** へ。
+- **画像ストレージ**: ローカルFS(`UPLOAD_DIR`)はコンテナ再作成で消えるため、本番は **`UPLOAD_STORAGE=supabase`(Supabase Storage)** か永続ボリュームへ。Supabase 側では private バケット(既定名 `uploads`)を事前に作成する。
 - **翻訳**: 無料枠超過時は DeepL Pro へ。訳文はDBにキャッシュ済みで再翻訳は抑制されます。
 
 ---
@@ -335,5 +339,5 @@ npm run dev          # http://localhost:3000
 | お客様にメールが届かない | `RESEND_API_KEY` / `NOTIFICATION_FROM_EMAIL` を確認。未設定時はログ出力のみ。 |
 | 要望・口コミの日本語訳が出ない | `DEEPL_API_KEY` 未設定。原文のみ保存されます。 |
 | 予約状態のボタンが押せない | 終端状態(お断り/キャンセル/完了/No-show)からは変更できません。 |
-| アップロード画像が表示されない | 本番で `UPLOAD_DIR` が永続化されているか確認(コンテナ再作成で消えることがあります)。 |
+| アップロード画像が表示されない | `UPLOAD_STORAGE=local` の場合は本番で `UPLOAD_DIR` が永続化されているか確認(コンテナ再作成で消えることがあります)。`supabase` の場合は `SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY` / バケット名を確認(サーバログに `Supabase Storage ... failed` が出ます)。 |
 | 画像のアップロードが失敗し続ける | 保存先が容量上限(`UPLOAD_DIR_MAX_BYTES`)に達している可能性。孤立画像の掃除(§8)を実行するか上限を見直す。サーバログに `storage cap reached` が出ます。 |

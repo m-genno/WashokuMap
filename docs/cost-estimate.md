@@ -40,6 +40,7 @@
 |---|---|---|---|
 | ホスティング | Vercel | 0〜3,000円 | Hobbyは無料、本番はProで約3,000円〜 |
 | データベース | Supabase / Neon | 0〜4,000円 | 無料枠で開始可、Proで約3,800円 |
+| 画像ストレージ | Supabase Storage(`UPLOAD_STORAGE=supabase`) | 0円〜 | 無料枠 1GB・転送5GB/月(DBと同一プロジェクト)。超過は Pro 約3,800円(DBと共用) |
 | **地図/ジオコーディング** | 現状: OpenStreetMap(Leaflet)+ Nominatim<br>本番大規模: MapTiler / Mapbox 等 | **現状 0円**<br>移行後 0〜5,000円 | 商用・高トラフィックで有料化(§2.2) |
 | 翻訳 | DeepL API | 0〜3,000円 | 無料枠50万字/月＋**訳文キャッシュ**でほぼ0に抑制可 |
 | メール送信 | Resend / SendGrid | 0〜3,000円 | 数千通/月までは無料枠内 |
