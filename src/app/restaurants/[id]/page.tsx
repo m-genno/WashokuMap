@@ -85,6 +85,12 @@ export default async function RestaurantPage({
           <div className="ml-auto flex items-center gap-3">
             <LocaleSwitcher current={locale} />
             <Link
+              href="/reservations"
+              className="text-sm text-stone-500 hover:text-stone-800"
+            >
+              {t("nav.reservations")}
+            </Link>
+            <Link
               href="/search"
               className="text-sm text-stone-500 hover:text-stone-800"
             >

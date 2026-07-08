@@ -81,6 +81,12 @@ export default async function SearchPage({
             >
               ♥
             </Link>
+            <Link
+              href="/reservations"
+              className="hidden shrink-0 text-sm text-stone-500 hover:text-stone-800 sm:inline"
+            >
+              {t("nav.reservations")}
+            </Link>
           </div>
         </div>
         <p className="mx-auto max-w-5xl px-4 pb-2 text-xs text-stone-500 sm:px-6">

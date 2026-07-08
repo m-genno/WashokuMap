@@ -66,7 +66,7 @@ type Dict = Record<string, string>;
 
 const ja: Dict = {
   "nav.favorites": "♥ お気に入り",
-  "nav.reservations": "📅 予約",
+  "nav.reservations": "📅 マイ予約",
   "nav.back": "← 検索に戻る",
   "nav.search": "検索する →",
 
@@ -251,7 +251,7 @@ const ja: Dict = {
 
 const en: Dict = {
   "nav.favorites": "♥ Favorites",
-  "nav.reservations": "📅 Reservations",
+  "nav.reservations": "📅 My reservations",
   "nav.back": "← Back to search",
   "nav.search": "Search →",
 
@@ -438,7 +438,7 @@ const en: Dict = {
 
 const zhHans: Dict = {
   "nav.favorites": "♥ 收藏",
-  "nav.reservations": "📅 预订",
+  "nav.reservations": "📅 我的预订",
   "nav.back": "← 返回搜索",
   "nav.search": "搜索 →",
 
@@ -610,7 +610,7 @@ const zhHans: Dict = {
 
 const zhHant: Dict = {
   "nav.favorites": "♥ 收藏",
-  "nav.reservations": "📅 預訂",
+  "nav.reservations": "📅 我的預訂",
   "nav.back": "← 返回搜尋",
   "nav.search": "搜尋 →",
 
@@ -782,7 +782,7 @@ const zhHant: Dict = {
 
 const ko: Dict = {
   "nav.favorites": "♥ 즐겨찾기",
-  "nav.reservations": "📅 예약",
+  "nav.reservations": "📅 내 예약",
   "nav.back": "← 검색으로 돌아가기",
   "nav.search": "검색하기 →",
 
