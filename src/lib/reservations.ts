@@ -95,6 +95,8 @@ export interface ReservationStatus {
   desired_alt_at: string | null;
   party_size: number;
   guest_name: string;
+  /** 客が入力した要望(原文)。利用者本人が見るページなので訳は不要 */
+  requests: string | null;
   restaurant_id: string;
   restaurant_name: string;
   restaurant_name_translations: Record<string, string> | null;
@@ -379,7 +381,7 @@ export async function getReservationById(
   if (!UUID_RE.test(id)) return null;
   const rows = await query<ReservationStatus>(
     `SELECT res.id, res.status, res.desired_at, res.desired_alt_at,
-            res.party_size, res.guest_name, res.restaurant_id,
+            res.party_size, res.guest_name, res.requests, res.restaurant_id,
             r.name AS restaurant_name,
             r.name_translations AS restaurant_name_translations
      FROM reservation res

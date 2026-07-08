@@ -130,6 +130,12 @@ export default async function ReservationStatusPage({
               {t("resvStatus.partyUnit", { n: r.party_size })}
             </dd>
           </div>
+          {r.requests && (
+            <div className={rowClass}>
+              <dt className={dtClass}>{t("resvStatus.requests")}</dt>
+              <dd className="whitespace-pre-wrap text-right">{r.requests}</dd>
+            </div>
+          )}
           <div className="flex justify-between gap-4 py-2">
             <dt className={dtClass}>{t("resvStatus.refNo")}</dt>
             <dd className="text-right font-mono text-xs text-stone-500">
