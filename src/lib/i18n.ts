@@ -66,6 +66,7 @@ type Dict = Record<string, string>;
 
 const ja: Dict = {
   "nav.favorites": "♥ お気に入り",
+  "nav.reservations": "📅 予約",
   "nav.back": "← 検索に戻る",
   "nav.search": "検索する →",
 
@@ -239,10 +240,18 @@ const ja: Dict = {
   "resvStatus.viewStatus": "予約状況を確認する →",
   "resvStatus.toRestaurant": "店舗詳細を見る →",
   "resvStatus.home": "← ホームへ",
+  "resvStatus.myList": "予約一覧を見る →",
+
+  "myResv.title": "マイ予約",
+  "myResv.note": "この端末(ブラウザ)から行った予約を表示しています。",
+  "myResv.loading": "読み込み中…",
+  "myResv.error": "予約の取得に失敗しました。時間をおいて再度お試しください。",
+  "myResv.empty": "この端末で行った予約はまだありません。",
 };
 
 const en: Dict = {
   "nav.favorites": "♥ Favorites",
+  "nav.reservations": "📅 Reservations",
   "nav.back": "← Back to search",
   "nav.search": "Search →",
 
@@ -418,10 +427,18 @@ const en: Dict = {
   "resvStatus.viewStatus": "Check reservation status →",
   "resvStatus.toRestaurant": "View restaurant →",
   "resvStatus.home": "← Home",
+  "resvStatus.myList": "View my reservations →",
+
+  "myResv.title": "My reservations",
+  "myResv.note": "Showing reservations made from this device (browser).",
+  "myResv.loading": "Loading…",
+  "myResv.error": "Failed to load reservations. Please try again later.",
+  "myResv.empty": "No reservations have been made from this device yet.",
 };
 
 const zhHans: Dict = {
   "nav.favorites": "♥ 收藏",
+  "nav.reservations": "📅 预订",
   "nav.back": "← 返回搜索",
   "nav.search": "搜索 →",
 
@@ -582,10 +599,18 @@ const zhHans: Dict = {
   "resvStatus.viewStatus": "查看预订状态 →",
   "resvStatus.toRestaurant": "查看店铺 →",
   "resvStatus.home": "← 返回首页",
+  "resvStatus.myList": "查看我的预订 →",
+
+  "myResv.title": "我的预订",
+  "myResv.note": "显示从此设备(浏览器)进行的预订。",
+  "myResv.loading": "加载中…",
+  "myResv.error": "获取预订失败,请稍后再试。",
+  "myResv.empty": "此设备尚未进行任何预订。",
 };
 
 const zhHant: Dict = {
   "nav.favorites": "♥ 收藏",
+  "nav.reservations": "📅 預訂",
   "nav.back": "← 返回搜尋",
   "nav.search": "搜尋 →",
 
@@ -746,10 +771,18 @@ const zhHant: Dict = {
   "resvStatus.viewStatus": "查看預訂狀態 →",
   "resvStatus.toRestaurant": "查看店家 →",
   "resvStatus.home": "← 返回首頁",
+  "resvStatus.myList": "查看我的預訂 →",
+
+  "myResv.title": "我的預訂",
+  "myResv.note": "顯示從此裝置(瀏覽器)進行的預訂。",
+  "myResv.loading": "載入中…",
+  "myResv.error": "取得預訂失敗,請稍後再試。",
+  "myResv.empty": "此裝置尚未進行任何預訂。",
 };
 
 const ko: Dict = {
   "nav.favorites": "♥ 즐겨찾기",
+  "nav.reservations": "📅 예약",
   "nav.back": "← 검색으로 돌아가기",
   "nav.search": "검색하기 →",
 
@@ -917,6 +950,13 @@ const ko: Dict = {
   "resvStatus.viewStatus": "예약 상태 확인하기 →",
   "resvStatus.toRestaurant": "매장 보기 →",
   "resvStatus.home": "← 홈으로",
+  "resvStatus.myList": "내 예약 보기 →",
+
+  "myResv.title": "내 예약",
+  "myResv.note": "이 기기(브라우저)에서 진행한 예약을 표시합니다.",
+  "myResv.loading": "불러오는 중…",
+  "myResv.error": "예약을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.",
+  "myResv.empty": "이 기기에서 진행한 예약이 아직 없습니다.",
 };
 
 const dictionaries: Record<Locale, Dict> = {

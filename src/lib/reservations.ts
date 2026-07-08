@@ -375,6 +375,40 @@ export async function setReservationStatus(
   }
 }
 
+export interface UserReservationRow {
+  id: string;
+  status: ReservationStatusValue;
+  desired_at: string;
+  desired_alt_at: string | null;
+  party_size: number;
+  created_at: string;
+  restaurant_id: string;
+  restaurant_name: string;
+  restaurant_name_translations: Record<string, string> | null;
+}
+
+/**
+ * 利用者自身の予約一覧(マイ予約)。受付の新しい順。
+ * 本人の端末(匿名ID→app_user)向けなので、氏名・連絡先は返さない。
+ */
+export async function listReservationsForUser(
+  userId: string,
+  limit = 50
+): Promise<UserReservationRow[]> {
+  return query<UserReservationRow>(
+    `SELECT res.id, res.status, res.desired_at, res.desired_alt_at,
+            res.party_size, res.created_at, res.restaurant_id,
+            r.name AS restaurant_name,
+            r.name_translations AS restaurant_name_translations
+     FROM reservation res
+     JOIN restaurant r ON r.id = res.restaurant_id
+     WHERE res.user_id = $1
+     ORDER BY res.created_at DESC, res.id
+     LIMIT $2`,
+    [userId, limit]
+  );
+}
+
 /** 予約の状況を取得(不正IDや未存在は null)。 */
 export async function getReservationById(
   id: string

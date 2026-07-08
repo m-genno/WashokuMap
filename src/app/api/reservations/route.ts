@@ -1,12 +1,18 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { getRestaurantById } from "@/lib/restaurants";
-import { createReservation } from "@/lib/reservations";
+import {
+  createReservation,
+  listReservationsForUser,
+} from "@/lib/reservations";
 import {
   sendReservationNotification,
   recordNotificationEvent,
 } from "@/lib/notifications";
 import { translateToJa } from "@/lib/translation";
-import { getOrCreateUserByAnonymousId } from "@/lib/users";
+import {
+  getOrCreateUserByAnonymousId,
+  getUserIdByAnonymousId,
+} from "@/lib/users";
 import {
   enforceRateLimit,
   requestTooLarge,
@@ -34,6 +40,27 @@ interface ReservationBody {
 
 function bad(error: string, status = 400) {
   return NextResponse.json({ error }, { status });
+}
+
+/**
+ * GET /api/reservations?anonymousId=...
+ * この端末(匿名ID)で行った予約の一覧(マイ予約)。
+ * 匿名IDは端末発行のUUIDで本人のみが知る前提。氏名・連絡先は返さない。
+ */
+export async function GET(req: NextRequest) {
+  const anonymousId = req.nextUrl.searchParams.get("anonymousId") ?? "";
+  const userId = anonymousId
+    ? await getUserIdByAnonymousId(anonymousId)
+    : null;
+  if (!userId) return NextResponse.json({ reservations: [] });
+
+  try {
+    const reservations = await listReservationsForUser(userId);
+    return NextResponse.json({ reservations });
+  } catch (err) {
+    console.error("list user reservations failed:", err);
+    return bad("list_failed", 500);
+  }
 }
 
 /**

@@ -151,6 +151,12 @@ export default async function ReservationStatusPage({
           >
             {t("resvStatus.toRestaurant")}
           </Link>
+          <Link
+            href="/reservations"
+            className="text-orange-800 hover:text-orange-900"
+          >
+            {t("resvStatus.myList")}
+          </Link>
           <Link href="/" className="text-stone-500 hover:text-stone-800">
             {t("resvStatus.home")}
           </Link>

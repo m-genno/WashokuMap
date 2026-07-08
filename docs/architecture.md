@@ -202,6 +202,7 @@ requested ──▶ confirmed ──▶ completed
 GET  /api/restaurants/search?q=&lat=&lng=&radius=&genre=   店舗検索(全文+地理)
 GET  /api/restaurants/{id}                                 店舗詳細
 POST /api/reservations                                     予約リクエスト作成
+GET  /api/reservations?anonymousId=                        自分の予約一覧(マイ予約)
 GET  /api/reservations/{id}                                予約状況参照
 POST /api/reservations/{id}/cancel                         予約キャンセル
 GET  /api/restaurants/{id}/reviews                         口コミ一覧

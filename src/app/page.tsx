@@ -31,6 +31,12 @@ export default async function Home() {
             >
               {t("nav.favorites")}
             </Link>
+            <Link
+              href="/reservations"
+              className="text-sm text-stone-500 hover:text-stone-800"
+            >
+              {t("nav.reservations")}
+            </Link>
           </div>
         </div>
       </header>
