@@ -155,7 +155,8 @@ function escapeLike(s: string): string {
 }
 
 /**
- * 予約デスク向けの予約一覧。
+ * 予約デスク向けの予約一覧。受付(created_at)の新しい順。
+ * (希望日時順だと先の日付の予約の下に新着リクエストが埋もれるため)
  * - status: 状態で絞り込み(未指定=すべて)
  * - q:      お客様名・店名・メール・電話の部分一致
  * - from/to: 希望日時(desired_at)の範囲(日付。to はその日を含む)
@@ -227,7 +228,7 @@ export async function listReservationsForAdmin(opts: {
        FROM reservation res
        JOIN restaurant r ON r.id = res.restaurant_id
        ${whereSql}
-       ORDER BY res.desired_at DESC
+       ORDER BY res.created_at DESC, res.id
        LIMIT ${limitPh} OFFSET ${offsetPh}`,
       values
     ),
