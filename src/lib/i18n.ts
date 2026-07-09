@@ -141,7 +141,6 @@ const ja: Dict = {
   "detail.phoneDesktopNote":
     "電話の発信はスマートフォンなどのモバイル端末からご利用ください。",
   "detail.sectionReviews": "口コミ",
-  "detail.directions": "Google マップで経路案内",
   "detail.openInGoogleMaps": "Google マップで開く",
   "detail.noLocation": "位置情報は未登録です。",
   "detail.noReviews": "まだ口コミがありません。予約・来店された方が投稿できます。",
@@ -328,7 +327,6 @@ const en: Dict = {
   "detail.phoneDesktopNote":
     "Calls can be made from a smartphone or other mobile device.",
   "detail.sectionReviews": "Reviews",
-  "detail.directions": "Directions in Google Maps",
   "detail.openInGoogleMaps": "Open in Google Maps",
   "detail.noLocation": "Location not registered.",
   "detail.noReviews":
@@ -512,7 +510,6 @@ const zhHans: Dict = {
   "detail.sectionPhone": "电话号码",
   "detail.phoneDesktopNote": "请使用智能手机等移动设备拨打电话。",
   "detail.sectionReviews": "评价",
-  "detail.directions": "在 Google 地图中查看路线",
   "detail.openInGoogleMaps": "在 Google 地图中打开",
   "detail.noLocation": "未登记位置信息。",
   "detail.noReviews": "暂无评价。预订或到店的客人可以发表。",
@@ -686,7 +683,6 @@ const zhHant: Dict = {
   "detail.sectionPhone": "電話號碼",
   "detail.phoneDesktopNote": "請使用智慧型手機等行動裝置撥打電話。",
   "detail.sectionReviews": "評價",
-  "detail.directions": "在 Google 地圖中查看路線",
   "detail.openInGoogleMaps": "在 Google 地圖中開啟",
   "detail.noLocation": "未登記位置資訊。",
   "detail.noReviews": "尚無評價。預訂或到店的客人可以發表。",
@@ -864,7 +860,6 @@ const ko: Dict = {
   "detail.phoneDesktopNote":
     "전화 발신은 스마트폰 등 모바일 기기에서 이용해 주세요.",
   "detail.sectionReviews": "리뷰",
-  "detail.directions": "Google 지도로 길찾기",
   "detail.openInGoogleMaps": "Google 지도에서 열기",
   "detail.noLocation": "위치 정보가 등록되지 않았습니다.",
   "detail.noReviews": "아직 리뷰가 없습니다. 예약・방문하신 분이 작성할 수 있습니다.",

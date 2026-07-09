@@ -254,26 +254,15 @@ export default async function RestaurantPage({
                   locale={locale}
                 />
               </div>
-              <div className="mt-3 flex flex-wrap gap-2">
-                <a
-                  href={`https://www.google.com/maps/search/?api=1&query=${r.lat},${r.lng}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 rounded-full border border-orange-300 px-4 py-2 text-sm font-medium text-orange-900 hover:bg-orange-100"
-                >
-                  <span aria-hidden="true">🗺️</span>
-                  {t("detail.openInGoogleMaps")}
-                </a>
-                <a
-                  href={`https://www.google.com/maps/dir/?api=1&destination=${r.lat},${r.lng}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 rounded-full border border-orange-300 px-4 py-2 text-sm font-medium text-orange-900 hover:bg-orange-100"
-                >
-                  <span aria-hidden="true">📍</span>
-                  {t("detail.directions")}
-                </a>
-              </div>
+              <a
+                href={`https://www.google.com/maps/search/?api=1&query=${r.lat},${r.lng}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-orange-300 px-4 py-2 text-sm font-medium text-orange-900 hover:bg-orange-100"
+              >
+                <span aria-hidden="true">🗺️</span>
+                {t("detail.openInGoogleMaps")}
+              </a>
             </>
           ) : (
             <p className="text-sm text-stone-500">{t("detail.noLocation")}</p>
