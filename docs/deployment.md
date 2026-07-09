@@ -1,15 +1,15 @@
 
 # WashokuMap 本番配備構成（2026/07/07決定）
 以下で決定。
-| # | カテゴリ | サービス | アカウント | 料金 | 無料枠の制限 |
-|---|---|---|---|---|---|
-|1|ホスティング|Render|GitHub連携|無料(Hobbyプラン)|15分無アクセスでスリープ/毎月750時間分まで/メモリ512MB|
-|2|ストレージ|Supabase Storage|GitHub連携|無料|1GBまで。50MB/1file。転送量5GB/月。1週間無アクセスでスリープ。バックアップ無し。
-|3|DB|Supabase Postgres(PostGIS)|GitHub連携|無料|500MBまで。1週間無アクセスでスリープ。バックアップ無し。
-|4|メール|Resend|未|||
-|5|地図|OSM|未|||
-|6|翻訳|DeepL|未|||
-|7|死活監視|UptimeRobot|メール登録|無料|50モニタ・監視間隔5分まで|
+| # | カテゴリ | サービス | アカウント | 料金 | 無料枠の制限 | 状況 | URL |
+|---|---|---|---|---|---|---|---|
+|1|ホスティング|Render|GitHub連携|無料(Hobbyプラン)|15分無アクセスでスリープ/毎月750時間分まで/メモリ512MB|配備完了| https://dashboard.render.com/web/srv-d96js9taeets73cccs9g |
+|2|ストレージ|Supabase Storage|GitHub連携|無料|1GBまで。50MB/1file。転送量5GB/月。1週間無アクセスでスリープ。バックアップ無し。|配備完了| https://supabase.com/dashboard/project/fctpowajuoroojxaakjl/storage/files |
+|3|DB|Supabase Postgres(PostGIS)|GitHub連携|無料|500MBまで。1週間無アクセスでスリープ。バックアップ無し。|配備完了| https://supabase.com/dashboard/project/fctpowajuoroojxaakjl/database/tables |
+|4|メール|Resend|GitHub連携|無料|100通/日。3000通/月|RESEND_API_KEYのみ設定| https://resend.com/emails |
+|5|地図|OSM|未|||未着手|
+|6|翻訳|DeepL|Google連携|無料|50万文字 / 月|配備完了| https://www.deepl.com/ja/translator |
+|7|死活監視|UptimeRobot|GitHub連携|無料|50モニタ・監視間隔5分まで|配備完了|https://dashboard.uptimerobot.com/monitors
 
 この構成に必要な設定(2026-07 実装済みの切り替え式ストレージ):
 
