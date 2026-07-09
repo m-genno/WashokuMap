@@ -1,4 +1,5 @@
 import { query } from "./db";
+import { translateText } from "./translation";
 
 /** ILIKE のワイルドカード(% _ \)をエスケープする。ESCAPE '\' と併用。 */
 function escapeLike(s: string): string {
@@ -257,4 +258,58 @@ export async function getRestaurantById(
   ]);
 
   return { ...base, genres, photos, hours, reviews };
+}
+
+// ---- 紹介文のオンデマンド翻訳 ----
+
+export type TranslateDescriptionResult =
+  | { ok: true; text: string }
+  | { ok: false; reason: "not_found" | "no_description" | "unavailable" };
+
+/**
+ * 公開店舗の紹介文を target ロケールへ翻訳して返す。
+ * description_translations にキャッシュがあればそれを使い、なければ DeepL で
+ * 翻訳してキャッシュに追記する(以後は pickTranslation で自動表示される)。
+ * 紹介文の原文は日本語(管理画面で入力)とみなす。
+ */
+export async function translateRestaurantDescription(
+  restaurantId: string,
+  target: string
+): Promise<TranslateDescriptionResult> {
+  if (!UUID_RE.test(restaurantId)) return { ok: false, reason: "not_found" };
+
+  const rows = await query<{
+    description: string | null;
+    description_translations: Record<string, string>;
+  }>(
+    `SELECT description, description_translations
+     FROM restaurant WHERE id = $1 AND status = 'published'`,
+    [restaurantId]
+  );
+  const r = rows[0];
+  if (!r) return { ok: false, reason: "not_found" };
+  if (!r.description) return { ok: false, reason: "no_description" };
+
+  // 原文は日本語とみなす。
+  if (target === "ja") return { ok: true, text: r.description };
+
+  const cached = r.description_translations?.[target];
+  if (cached) return { ok: true, text: cached };
+
+  const translated = await translateText(r.description, target, "ja");
+  if (!translated) return { ok: false, reason: "unavailable" };
+
+  // 次回以降の DeepL 呼び出しを省くためキャッシュに追記(失敗しても返却は行う)。
+  try {
+    await query(
+      `UPDATE restaurant
+       SET description_translations = description_translations || jsonb_build_object($2::text, $3::text)
+       WHERE id = $1`,
+      [restaurantId, target, translated]
+    );
+  } catch (err) {
+    console.error("cache description translation failed:", err);
+  }
+
+  return { ok: true, text: translated };
 }

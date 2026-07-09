@@ -13,6 +13,7 @@ import ReviewForm from "@/components/ReviewForm";
 import RestaurantReviewList from "@/components/RestaurantReviewList";
 import RestaurantPhotoGrid from "@/components/RestaurantPhotoGrid";
 import LocaleSwitcher from "@/components/LocaleSwitcher";
+import TranslateToggle from "@/components/TranslateToggle";
 import { getLocale } from "@/lib/serverLocale";
 import { translator, pickTranslation, type TFn } from "@/lib/i18n";
 
@@ -175,6 +176,14 @@ export default async function RestaurantPage({
           <section className="mb-6">
             <h2 className="mb-1 font-semibold">{t("detail.sectionIntro")}</h2>
             <p className="text-stone-700">{displayDescription}</p>
+            {/* 閲覧言語の訳が未保存(=原文や他言語のフォールバック表示)なら翻訳ボタンを出す */}
+            {locale !== "ja" && !r.description_translations?.[locale] && (
+              <TranslateToggle
+                url={`/api/restaurants/${r.id}/description/translate?target=${encodeURIComponent(locale)}`}
+                locale={locale}
+                className="mt-1"
+              />
+            )}
           </section>
         )}
 

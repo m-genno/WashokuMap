@@ -522,6 +522,7 @@ export type UpdateRestaurantResult =
  * - listing_type と source は維持(本フォームの編集対象外)。
  * - status='published' にするには location 必須。
  * - 名前の他言語訳(ja/zh/ko等)は維持し en だけ差し替え(空なら en を削除)。
+ * - 紹介文が変わった場合は description_translations(訳キャッシュ)を破棄する。
  */
 export async function updateRestaurant(
   id: string,
@@ -554,6 +555,11 @@ export async function updateRestaurant(
            ELSE name_translations || jsonb_build_object('en', $3::text)
          END,
          description = $4,
+         -- 紹介文が変わったら訳キャッシュを破棄(次回の翻訳ボタンで再生成される)
+         description_translations = CASE
+           WHEN description IS DISTINCT FROM $4::text THEN '{}'::jsonb
+           ELSE description_translations
+         END,
          address = $5,
          location = ${locationSql(loc.lat, loc.lng)},
          phone = $6,
