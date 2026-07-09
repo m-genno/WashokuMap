@@ -3,6 +3,7 @@
 import { useState } from "react";
 import type { RecentReview } from "@/lib/reviews";
 import Pagination from "./Pagination";
+import PhotoLightbox from "./PhotoLightbox";
 import ReportReviewButton from "./ReportReviewButton";
 import { translator, type Locale } from "@/lib/i18n";
 
@@ -33,6 +34,11 @@ export default function RestaurantReviewList({
   const [pages, setPages] = useState<Record<number, RecentReview[]>>({
     1: initialReviews,
   });
+  // ライトボックス表示中の写真(どの口コミの何枚目か)。null なら非表示。
+  const [lightbox, setLightbox] = useState<{
+    reviewId: string;
+    index: number;
+  } | null>(null);
 
   async function changePage(p: number) {
     setError("");
@@ -113,21 +119,21 @@ export default function RestaurantReviewList({
               )}
             {rv.photos.length > 0 && (
               <div className="mt-2 flex flex-wrap gap-2">
-                {rv.photos.map((ph) => (
-                  <a
+                {rv.photos.map((ph, i) => (
+                  <button
+                    type="button"
                     key={ph.url}
-                    href={ph.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
+                    aria-label={t("lightbox.open")}
+                    onClick={() => setLightbox({ reviewId: rv.id, index: i })}
                   >
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={ph.thumbUrl ?? ph.url}
                       alt=""
                       loading="lazy"
-                      className="h-20 w-20 rounded-lg object-cover hover:opacity-90"
+                      className="h-20 w-20 cursor-pointer rounded-lg object-cover hover:opacity-90"
                     />
-                  </a>
+                  </button>
                 ))}
               </div>
             )}
@@ -138,6 +144,23 @@ export default function RestaurantReviewList({
         ))}
       </ul>
       {pager("mt-3")}
+      {lightbox &&
+        (() => {
+          const photos =
+            reviews.find((rv) => rv.id === lightbox.reviewId)?.photos ?? [];
+          if (photos.length === 0) return null;
+          return (
+            <PhotoLightbox
+              photos={photos.map((ph) => ({ url: ph.url }))}
+              index={lightbox.index}
+              locale={locale}
+              onClose={() => setLightbox(null)}
+              onIndexChange={(i) =>
+                setLightbox({ reviewId: lightbox.reviewId, index: i })
+              }
+            />
+          );
+        })()}
     </div>
   );
 }

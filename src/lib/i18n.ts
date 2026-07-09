@@ -124,6 +124,11 @@ const ja: Dict = {
   "pager.next": "次へ →",
   "pager.range": "全 {total} 件中 {start}–{end} 件",
 
+  "lightbox.open": "写真を拡大表示",
+  "lightbox.close": "閉じる",
+  "lightbox.prev": "前の写真",
+  "lightbox.next": "次の写真",
+
   "resv.request": "リクエスト予約",
   "resv.external": "公式サイト予約",
   "resv.phone_only": "電話予約",
@@ -310,6 +315,11 @@ const en: Dict = {
   "pager.next": "Next →",
   "pager.range": "{start}–{end} of {total}",
 
+  "lightbox.open": "View photo",
+  "lightbox.close": "Close",
+  "lightbox.prev": "Previous photo",
+  "lightbox.next": "Next photo",
+
   "resv.request": "Request booking",
   "resv.external": "Official site",
   "resv.phone_only": "Phone booking",
@@ -495,6 +505,11 @@ const zhHans: Dict = {
   "pager.next": "下一页 →",
   "pager.range": "共 {total} 条中的 {start}–{end} 条",
 
+  "lightbox.open": "查看照片",
+  "lightbox.close": "关闭",
+  "lightbox.prev": "上一张照片",
+  "lightbox.next": "下一张照片",
+
   "resv.request": "申请预订",
   "resv.external": "官方网站",
   "resv.phone_only": "电话预订",
@@ -667,6 +682,11 @@ const zhHant: Dict = {
   "pager.prev": "← 上一頁",
   "pager.next": "下一頁 →",
   "pager.range": "共 {total} 條中的 {start}–{end} 條",
+
+  "lightbox.open": "檢視照片",
+  "lightbox.close": "關閉",
+  "lightbox.prev": "上一張照片",
+  "lightbox.next": "下一張照片",
 
   "resv.request": "申請預訂",
   "resv.external": "官方網站",
@@ -842,6 +862,11 @@ const ko: Dict = {
   "pager.prev": "← 이전",
   "pager.next": "다음 →",
   "pager.range": "전체 {total}건 중 {start}–{end}건",
+
+  "lightbox.open": "사진 크게 보기",
+  "lightbox.close": "닫기",
+  "lightbox.prev": "이전 사진",
+  "lightbox.next": "다음 사진",
 
   "resv.request": "요청 예약",
   "resv.external": "공식 사이트",

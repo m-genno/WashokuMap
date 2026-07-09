@@ -11,6 +11,7 @@ import DetailMap from "@/components/DetailMap";
 import FavoriteButton from "@/components/FavoriteButton";
 import ReviewForm from "@/components/ReviewForm";
 import RestaurantReviewList from "@/components/RestaurantReviewList";
+import RestaurantPhotoGrid from "@/components/RestaurantPhotoGrid";
 import LocaleSwitcher from "@/components/LocaleSwitcher";
 import { getLocale } from "@/lib/serverLocale";
 import { translator, pickTranslation, type TFn } from "@/lib/i18n";
@@ -101,27 +102,13 @@ export default async function RestaurantPage({
       </header>
 
       <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-6 sm:px-6">
-        {/* 写真(サムネ表示。クリックで元画像) */}
+        {/* 写真(サムネ表示。クリックでライトボックス拡大) */}
         {r.photos.length > 0 ? (
-          <div className="mb-5 grid grid-cols-2 gap-2 sm:grid-cols-3">
-            {r.photos.map((p, i) => (
-              <a
-                key={i}
-                href={p.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="block"
-              >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={p.thumb_url ?? p.url}
-                  alt={p.caption ?? r.name}
-                  loading="lazy"
-                  className="aspect-[4/3] w-full rounded-xl object-cover hover:opacity-90"
-                />
-              </a>
-            ))}
-          </div>
+          <RestaurantPhotoGrid
+            photos={r.photos}
+            name={displayName}
+            locale={locale}
+          />
         ) : (
           <div className="mb-5 flex aspect-[16/6] items-center justify-center rounded-xl bg-orange-100 text-4xl">
             和
