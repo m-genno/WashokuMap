@@ -289,7 +289,7 @@ npm run dev          # http://localhost:3000
 |---|---|---|---|---|---|
 | 1 | **メール送信**(予約通知) | Resend, Inc. | 環境変数 `RESEND_API_KEY` / `NOTIFICATION_FROM_EMAIL` / `RESERVATION_DESK_EMAIL` | 無料枠あり(〜数千通/月)→ 超過で有料(約 $20/月〜) | 本番で必須(通知を使う場合) |
 | 2 | **翻訳**(要望・口コミの日本語訳) | DeepL SE | 環境変数 `DEEPL_API_KEY`(必要に応じ `DEEPL_API_URL`) | Free(末尾 `:fx`、50万字/月まで無料)/ Pro(約 €5/月〜＋従量) | 任意(未設定なら原文のみ) |
-| 3 | **地図タイル** | OpenStreetMap Foundation(現状) | ソースコード `src/components/RestaurantMap.tsx`(タイルURL・帰属表示) | 現状無料(OSM)。本番大規模は有料プロバイダ推奨 | 必須(現状はアカウント不要) |
+| 3 | **地図タイル**(ベクター・多言語ラベル) | OpenFreeMap(OSMデータの無料配信。障害時は OSM ラスターへ自動フォールバック) | ソースコード `src/components/RestaurantMap.tsx`(スタイルURL・帰属表示) | 無料・無制限(公称)。キー/アカウント不要 | 必須(アカウント不要) |
 | 4 | **ジオコーディング**(住所→緯度経度) | OpenStreetMap Foundation(Nominatim、現状) | 環境変数 `GEOCODE_API_URL`(未設定時は公開Nominatim) | 現状無料。商用・大量は有料/自前運用へ | 必須(現状はアカウント不要) |
 | 5 | **データベース**(PostgreSQL+PostGIS) | マネージドDB提供元(例: Supabase / Neon / AWS RDS) | 環境変数 `DATABASE_URL` | 無料枠あり → Pro 約 $20〜25/月 | 本番で必須 |
 | 6 | **ホスティング**(アプリ配信) | Vercel, Inc.(想定。Next.js) | 各社の管理コンソール(リポジトリ連携・環境変数設定) | Hobby 無料 / Pro 約 $20/月 | 本番で必須 |
@@ -309,7 +309,7 @@ npm run dev          # http://localhost:3000
 - **環境変数**(`.env.local`(ローカル)/ 本番の環境変数。雛形は `.env.example`):
   `DATABASE_URL`, `RESEND_API_KEY`, `NOTIFICATION_FROM_EMAIL`, `RESERVATION_DESK_EMAIL`, `DEEPL_API_KEY`, `DEEPL_API_URL`, `GEOCODE_API_URL`, `APP_BASE_URL`, `UPLOAD_STORAGE`, `UPLOAD_DIR`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_STORAGE_BUCKET`, `ADMIN_TOKEN`
   - `.env*` は **Git管理外**(`.env.example` のみコミット)。キーをコミットしないこと。
-- **ソースコード**: 地図タイルのプロバイダ/帰属表示は現状 `src/components/RestaurantMap.tsx` にハードコード。
+- **ソースコード**: 地図タイルのスタイルURL(OpenFreeMap)/帰属表示は現状 `src/components/RestaurantMap.tsx` にハードコード。
   キー付きプロバイダ(MapTiler/Mapbox等)へ切り替える際は、URL・キーを**環境変数化**して差し替えてください。
 - **各サービスの管理コンソール**(env外): ホスティング(Vercel等)、レジストラ(DNS)、GitHub。本番の環境変数自体はホスティングのコンソールに登録します。
 
@@ -321,13 +321,13 @@ npm run dev          # http://localhost:3000
 | 随時 | **APIキーのローテーション**(Resend / DeepL / DB資格情報)。退職者発生時は失効。 |
 | 随時 | メール**送信ドメインのDNS検証(SPF/DKIM)**の維持。失効すると到達率低下・送信停止。 |
 | 月次 | **無料枠/従量の監視**: DeepL の文字数、Resend の送信通数、地図タイル/ジオコーディングのアクセス数、DB/ホスティングの使用量。 |
-| 随時 | **OSM/Nominatim 利用ポリシーの遵守**(タイル: 高負荷禁止・帰属表示、ジオコーディング: 1req/s 上限・大量利用は自前運用)。商用・大量化が見えたら**有料プロバイダへ移行**。 |
+| 随時 | **OpenFreeMap/Nominatim 利用ポリシーの遵守**(タイル: 帰属表示の維持、ジオコーディング: 1req/s 上限・大量利用は自前運用)。Nominatim の商用・大量化が見えたら**有料プロバイダへ移行**。 |
 | 随時 | 課金プラン超過アラートの設定(各サービスのコンソール)。 |
 | 随時 | **死活監視(UptimeRobot)の維持**: ダウン通知が届くか、監視URL(ドメイン変更時)・通知先メールが有効かを確認。`SITE_LOCK` 切替時は監視の期待ステータス/Basic 認証設定も見直す。 |
 
 ### 11.4 本番移行時に検討する切り替え
 
-- **地図/ジオコーディング**: 公開 OSM/Nominatim は**商用・高トラフィック非推奨**。トラフィックが増えたら MapTiler / Mapbox / Google などの**キー付き有料サービス**へ。`GEOCODE_API_URL` とタイル設定を差し替え。
+- **地図/ジオコーディング**: 地図タイルは OpenFreeMap(無料・無制限公称)で当面移行不要。SLA が無いため、依存リスクが気になる段階で自前ホスト(Planetiler + PMTiles)か MapTiler 等へ。ジオコーディングの公開 Nominatim は**商用・高トラフィック非推奨**のため、増えたら `GEOCODE_API_URL` を有料プロバイダへ差し替え。
 - **画像ストレージ**: ローカルFS(`UPLOAD_DIR`)はコンテナ再作成で消えるため、本番は **`UPLOAD_STORAGE=supabase`(Supabase Storage)** か永続ボリュームへ。Supabase 側では private バケット(既定名 `uploads`)を事前に作成する。
 - **翻訳**: 無料枠超過時は DeepL Pro へ。訳文はDBにキャッシュ済みで再翻訳は抑制されます。
 

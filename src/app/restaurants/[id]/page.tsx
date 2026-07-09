@@ -251,6 +251,7 @@ export default async function RestaurantPage({
                   name={displayName}
                   lat={r.lat}
                   lng={r.lng}
+                  locale={locale}
                 />
               </div>
               <div className="mt-3 flex flex-wrap gap-2">

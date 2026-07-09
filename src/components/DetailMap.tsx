@@ -2,6 +2,7 @@
 
 import dynamic from "next/dynamic";
 import type { RestaurantSearchResult } from "@/lib/restaurants";
+import type { Locale } from "@/lib/i18n";
 import MapLoading from "./MapLoading";
 
 const RestaurantMap = dynamic(() => import("./RestaurantMap"), {
@@ -15,11 +16,13 @@ export default function DetailMap({
   name,
   lat,
   lng,
+  locale,
 }: {
   id: string;
   name: string;
   lat: number;
   lng: number;
+  locale?: Locale;
 }) {
   const point: RestaurantSearchResult = {
     id,
@@ -37,6 +40,11 @@ export default function DetailMap({
   };
 
   return (
-    <RestaurantMap results={[point]} selectedId={id} onSelect={() => {}} />
+    <RestaurantMap
+      results={[point]}
+      selectedId={id}
+      onSelect={() => {}}
+      locale={locale}
+    />
   );
 }

@@ -2,7 +2,10 @@ import type { NextConfig } from "next";
 
 const isDev = process.env.NODE_ENV === "development";
 
-// CSP: 外部に依存するのは地図タイル(OpenStreetMap)の画像のみ。
+// CSP: 外部に依存するのは地図のみ。
+// - 地図ベクタータイル(OpenFreeMap): スタイル/タイル/グリフを fetch で取得するため connect-src。
+//   MapLibre GL は blob: の Web Worker を使う(worker-src blob:)。
+// - 地図ラスタータイル(OpenStreetMap): OpenFreeMap 障害時のフォールバック画像(img-src)。
 // - script/style の 'unsafe-inline' は Next のブートストラップスクリプトと
 //   Leaflet divIcon の style 属性に必要(nonce 化する場合は middleware 導入を検討)。
 // - dev のみ HMR(Turbopack)用に 'unsafe-eval' と WebSocket を許可。
@@ -12,7 +15,7 @@ const csp = [
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob: https://*.tile.openstreetmap.org",
   "font-src 'self' data:",
-  `connect-src 'self'${isDev ? " ws:" : ""}`,
+  `connect-src 'self' https://tiles.openfreemap.org${isDev ? " ws:" : ""}`,
   "worker-src 'self' blob:",
   "object-src 'none'",
   "base-uri 'self'",
