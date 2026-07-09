@@ -149,7 +149,7 @@ const ja: Dict = {
   "detail.openInGoogleMaps": "Google マップで開く",
   "detail.noLocation": "位置情報は未登録です。",
   "detail.noReviews": "まだ口コミがありません。予約・来店された方が投稿できます。",
-  "detail.translated": "和訳: ",
+  "detail.translated": "訳: ",
 
   "review.checking": "投稿資格を確認中…",
   "review.done": "口コミを投稿しました。ありがとうございます。",
@@ -169,6 +169,10 @@ const ja: Dict = {
   "review.uploading": "アップロード中…",
   "review.photoTooLarge": "画像が大きすぎます(最大5MB)。",
   "review.uploadFailed": "画像のアップロードに失敗しました。",
+  "review.translate": "翻訳する",
+  "review.translating": "翻訳中…",
+  "review.hideTranslation": "翻訳を隠す",
+  "review.translateFailed": "翻訳できませんでした。",
 
   "report.button": "通報",
   "report.submit": "通報する",
@@ -341,7 +345,7 @@ const en: Dict = {
   "detail.noLocation": "Location not registered.",
   "detail.noReviews":
     "No reviews yet. Guests who reserved or visited can post one.",
-  "detail.translated": "JA: ",
+  "detail.translated": "Translation: ",
 
   "review.checking": "Checking eligibility…",
   "review.done": "Your review was posted. Thank you!",
@@ -362,6 +366,10 @@ const en: Dict = {
   "review.uploading": "Uploading…",
   "review.photoTooLarge": "Image is too large (max 5MB).",
   "review.uploadFailed": "Failed to upload the image.",
+  "review.translate": "Translate",
+  "review.translating": "Translating…",
+  "review.hideTranslation": "Hide translation",
+  "review.translateFailed": "Could not translate.",
 
   "report.button": "Report",
   "report.submit": "Report",
@@ -528,7 +536,7 @@ const zhHans: Dict = {
   "detail.openInGoogleMaps": "在 Google 地图中打开",
   "detail.noLocation": "未登记位置信息。",
   "detail.noReviews": "暂无评价。预订或到店的客人可以发表。",
-  "detail.translated": "日译: ",
+  "detail.translated": "译文: ",
 
   "review.checking": "正在确认资格…",
   "review.done": "评价已发布，谢谢！",
@@ -547,6 +555,10 @@ const zhHans: Dict = {
   "review.uploading": "上传中…",
   "review.photoTooLarge": "图片过大(最大5MB)。",
   "review.uploadFailed": "图片上传失败。",
+  "review.translate": "翻译",
+  "review.translating": "翻译中…",
+  "review.hideTranslation": "隐藏译文",
+  "review.translateFailed": "翻译失败。",
 
   "report.button": "举报",
   "report.submit": "举报",
@@ -706,7 +718,7 @@ const zhHant: Dict = {
   "detail.openInGoogleMaps": "在 Google 地圖中開啟",
   "detail.noLocation": "未登記位置資訊。",
   "detail.noReviews": "尚無評價。預訂或到店的客人可以發表。",
-  "detail.translated": "日譯: ",
+  "detail.translated": "譯文: ",
 
   "review.checking": "正在確認資格…",
   "review.done": "評價已發布，謝謝！",
@@ -725,6 +737,10 @@ const zhHant: Dict = {
   "review.uploading": "上傳中…",
   "review.photoTooLarge": "圖片過大(最大5MB)。",
   "review.uploadFailed": "圖片上傳失敗。",
+  "review.translate": "翻譯",
+  "review.translating": "翻譯中…",
+  "review.hideTranslation": "隱藏譯文",
+  "review.translateFailed": "翻譯失敗。",
 
   "report.button": "檢舉",
   "report.submit": "檢舉",
@@ -888,7 +904,7 @@ const ko: Dict = {
   "detail.openInGoogleMaps": "Google 지도에서 열기",
   "detail.noLocation": "위치 정보가 등록되지 않았습니다.",
   "detail.noReviews": "아직 리뷰가 없습니다. 예약・방문하신 분이 작성할 수 있습니다.",
-  "detail.translated": "일역: ",
+  "detail.translated": "번역: ",
 
   "review.checking": "작성 자격 확인 중…",
   "review.done": "리뷰를 등록했습니다. 감사합니다!",
@@ -907,6 +923,10 @@ const ko: Dict = {
   "review.uploading": "업로드 중…",
   "review.photoTooLarge": "이미지가 너무 큽니다(최대 5MB).",
   "review.uploadFailed": "이미지 업로드에 실패했습니다.",
+  "review.translate": "번역",
+  "review.translating": "번역 중…",
+  "review.hideTranslation": "번역 숨기기",
+  "review.translateFailed": "번역에 실패했습니다.",
 
   "report.button": "신고",
   "report.submit": "신고",

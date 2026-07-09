@@ -39,6 +39,49 @@ export default function RestaurantReviewList({
     reviewId: string;
     index: number;
   } | null>(null);
+  // 口コミごとの翻訳表示状態(ボタンを押した口コミだけ表示する)。
+  const [translations, setTranslations] = useState<
+    Record<string, { state: "loading" | "shown" | "error"; text?: string }>
+  >({});
+
+  async function toggleTranslation(rv: RecentReview) {
+    const current = translations[rv.id];
+    if (current?.state === "loading") return;
+    if (current?.state === "shown") {
+      // 再度押したら非表示に戻す(取得済みテキストは捨ててよい。キャッシュはサーバ側)。
+      setTranslations((prev) => {
+        const next = { ...prev };
+        delete next[rv.id];
+        return next;
+      });
+      return;
+    }
+
+    // 投稿時に保存済みの訳(例: 日本語キャッシュ)があれば API を呼ばずに表示。
+    const cached = rv.body_translations?.[locale];
+    if (cached) {
+      setTranslations((prev) => ({
+        ...prev,
+        [rv.id]: { state: "shown", text: cached },
+      }));
+      return;
+    }
+
+    setTranslations((prev) => ({ ...prev, [rv.id]: { state: "loading" } }));
+    try {
+      const res = await fetch(
+        `/api/reviews/${rv.id}/translate?target=${encodeURIComponent(locale)}`
+      );
+      if (!res.ok) throw new Error(`status ${res.status}`);
+      const data: { text: string } = await res.json();
+      setTranslations((prev) => ({
+        ...prev,
+        [rv.id]: { state: "shown", text: data.text },
+      }));
+    } catch {
+      setTranslations((prev) => ({ ...prev, [rv.id]: { state: "error" } }));
+    }
+  }
 
   async function changePage(p: number) {
     setError("");
@@ -109,14 +152,33 @@ export default function RestaurantReviewList({
             {rv.body && (
               <p className="mt-1 text-sm text-stone-700">{rv.body}</p>
             )}
-            {locale === "ja" &&
-              rv.body_lang !== "ja" &&
-              rv.body_translations?.ja && (
-                <p className="mt-1 border-l-2 border-orange-100 pl-2 text-sm text-stone-500">
-                  {t("detail.translated")}
-                  {rv.body_translations.ja}
-                </p>
-              )}
+            {rv.body && rv.body_lang !== locale && (
+              <div className="mt-1">
+                <button
+                  type="button"
+                  onClick={() => toggleTranslation(rv)}
+                  disabled={translations[rv.id]?.state === "loading"}
+                  className="text-xs text-orange-800 underline underline-offset-2 hover:text-orange-900 disabled:opacity-60"
+                >
+                  {translations[rv.id]?.state === "loading"
+                    ? t("review.translating")
+                    : translations[rv.id]?.state === "shown"
+                      ? t("review.hideTranslation")
+                      : t("review.translate")}
+                </button>
+                {translations[rv.id]?.state === "error" && (
+                  <p className="mt-1 text-xs text-red-600">
+                    {t("review.translateFailed")}
+                  </p>
+                )}
+                {translations[rv.id]?.state === "shown" && (
+                  <p className="mt-1 border-l-2 border-orange-100 pl-2 text-sm text-stone-500">
+                    {t("detail.translated")}
+                    {translations[rv.id].text}
+                  </p>
+                )}
+              </div>
+            )}
             {rv.photos.length > 0 && (
               <div className="mt-2 flex flex-wrap gap-2">
                 {rv.photos.map((ph, i) => (

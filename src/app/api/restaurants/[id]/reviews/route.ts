@@ -29,6 +29,7 @@ function bad(error: string, status = 400) {
 const NOT_ELIGIBLE: ReviewContext = {
   eligible: false,
   reservationId: null,
+  reservationLang: null,
   existing: null,
 };
 

@@ -29,6 +29,7 @@ interface MyReview {
 interface ReviewContext {
   eligible: boolean;
   reservationId: string | null;
+  reservationLang: string | null;
   existing: MyReview | null;
 }
 
@@ -64,6 +65,7 @@ export default function ReviewForm({
     const NOT_ELIGIBLE: ReviewContext = {
       eligible: false,
       reservationId: null,
+      reservationLang: null,
       existing: null,
     };
 
@@ -84,6 +86,12 @@ export default function ReviewForm({
           setBody(ctx.existing.body ?? "");
           setBodyLang(ctx.existing.body_lang);
           setPhotos(ctx.existing.photos ?? []);
+        } else if (
+          ctx.reservationLang &&
+          LANGS.some((l) => l.code === ctx.reservationLang)
+        ) {
+          // 新規投稿は予約時の言語を初期値にする(分かっている場合)。
+          setBodyLang(ctx.reservationLang);
         }
         setPhase({ kind: "ready", ctx });
       } catch {

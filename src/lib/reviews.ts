@@ -1,4 +1,5 @@
 import { pool, query } from "./db";
+import { translateText } from "./translation";
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -28,6 +29,8 @@ export interface ReviewContext {
   eligible: boolean;
   /** 資格の根拠となる予約ID(最新)。なければ null */
   reservationId: string | null;
+  /** 資格の根拠となる予約の予約者言語(投稿言語の初期値用)。なければ null */
+  reservationLang: string | null;
   /** この店へのこのユーザの既存口コミ(編集用)。なければ null */
   existing: MyReview | null;
 }
@@ -41,8 +44,8 @@ export async function getReviewContext(
   userId: string
 ): Promise<ReviewContext> {
   const [reservations, existing] = await Promise.all([
-    query<{ id: string }>(
-      `SELECT id FROM reservation
+    query<{ id: string; guest_lang: string | null }>(
+      `SELECT id, guest_lang FROM reservation
        WHERE restaurant_id = $1 AND user_id = $2
          AND status = ANY($3)
        ORDER BY desired_at DESC
@@ -67,6 +70,7 @@ export async function getReviewContext(
   return {
     eligible: reservations.length > 0,
     reservationId: reservations[0]?.id ?? null,
+    reservationLang: reservations[0]?.guest_lang ?? null,
     existing: existing[0] ?? null,
   };
 }
@@ -207,6 +211,60 @@ export async function upsertReview(
   } finally {
     client.release();
   }
+}
+
+// ---- 口コミ本文のオンデマンド翻訳 ----
+
+export type TranslateReviewResult =
+  | { ok: true; text: string }
+  | { ok: false; reason: "not_found" | "no_body" | "unavailable" };
+
+/**
+ * 公開中の口コミ本文を target ロケールへ翻訳して返す。
+ * body_translations にキャッシュがあればそれを使い、なければ DeepL で翻訳して
+ * キャッシュに追記する(翻訳未接続・失敗時は unavailable)。
+ */
+export async function translateReviewBody(
+  reviewId: string,
+  target: string
+): Promise<TranslateReviewResult> {
+  if (!UUID_RE.test(reviewId)) return { ok: false, reason: "not_found" };
+
+  const rows = await query<{
+    body: string | null;
+    body_lang: string;
+    body_translations: Record<string, string>;
+  }>(
+    `SELECT body, body_lang, body_translations
+     FROM review WHERE id = $1 AND status = 'published'`,
+    [reviewId]
+  );
+  const review = rows[0];
+  if (!review) return { ok: false, reason: "not_found" };
+  if (!review.body) return { ok: false, reason: "no_body" };
+
+  // 原文が対象言語ならそのまま返す。
+  if (review.body_lang === target) return { ok: true, text: review.body };
+
+  const cached = review.body_translations?.[target];
+  if (cached) return { ok: true, text: cached };
+
+  const translated = await translateText(review.body, target, review.body_lang);
+  if (!translated) return { ok: false, reason: "unavailable" };
+
+  // 次回以降の DeepL 呼び出しを省くためキャッシュに追記(失敗しても返却は行う)。
+  try {
+    await query(
+      `UPDATE review
+       SET body_translations = body_translations || jsonb_build_object($2::text, $3::text)
+       WHERE id = $1`,
+      [reviewId, target, translated]
+    );
+  } catch (err) {
+    console.error("cache review translation failed:", err);
+  }
+
+  return { ok: true, text: translated };
 }
 
 // ---- モデレーション(通報・非表示) ----
