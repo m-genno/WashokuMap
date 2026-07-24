@@ -72,7 +72,7 @@ export default async function SearchPage({
               WashokuMap
             </span>
           </Link>
-          <div className="ml-auto flex flex-1 items-center gap-3">
+          <div className="ml-auto flex min-w-0 flex-1 items-center gap-3">
             <SearchBar size="sm" defaultValue={q} locale={locale} />
             <LocaleSwitcher current={locale} />
             <Link

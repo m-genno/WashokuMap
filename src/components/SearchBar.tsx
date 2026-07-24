@@ -29,14 +29,14 @@ export default function SearchBar({
   const btnPad = size === "lg" ? "px-6 py-3" : "px-4 py-2 text-sm";
 
   return (
-    <form onSubmit={onSubmit} className="flex flex-1 gap-2">
+    <form onSubmit={onSubmit} className="flex min-w-0 flex-1 gap-2">
       <input
         type="search"
         name="q"
         defaultValue={defaultValue}
         placeholder={t("searchBar.placeholder")}
         aria-label={t("searchBar.aria")}
-        className={`flex-1 rounded-full border border-orange-200 bg-white outline-none placeholder:text-stone-400 focus:border-orange-400 ${pad}`}
+        className={`min-w-0 flex-1 rounded-full border border-orange-200 bg-white outline-none placeholder:text-stone-400 focus:border-orange-400 ${pad}`}
       />
       <button
         type="submit"
